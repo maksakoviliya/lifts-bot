@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Services\Parsers\EgegeshParser;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class ParseLiftsCommand extends Command
 {
@@ -15,6 +16,8 @@ class ParseLiftsCommand extends Command
 	
     public function handle(): int
     {
+		Log::info('Start parsing lifts');
+		
         $parser = new EgegeshParser();
 
 	    $processed = $parser->parse();

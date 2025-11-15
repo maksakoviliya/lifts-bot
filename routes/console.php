@@ -9,7 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::call(function () {
-	Artisan::command('app:parse-lifts-command', function () {
-		$this->comment('Command in scheduler comment');
-	});
+	Artisan::call('app:parse-lifts-command');
 })->everyFifteenMinutes();
