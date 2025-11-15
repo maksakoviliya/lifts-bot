@@ -4,6 +4,7 @@ namespace App\Telegram\Commands;
 
 use App\Models\Lift;
 use Telegram\Bot\Commands\Command;
+use Telegram\Bot\Keyboard\Keyboard;
 
 class LiftsCommand extends Command
 {
@@ -13,6 +14,15 @@ class LiftsCommand extends Command
 	
 	public function handle(): void
 	{
+		$keyboard = Keyboard::make()
+			->inline()
+			->row([
+				Keyboard::inlineButton([
+					'text' => '🎿 Проверить подъемники',
+					'callback_data' => 'lifts'
+				])
+			]);
+		
 		$lifts = Lift::query()->get();
 
 		if ($lifts->isEmpty()) {
@@ -34,7 +44,8 @@ class LiftsCommand extends Command
 
 		$this->replyWithMessage([
 			'text' => $output,
-			'parse_mode' => 'Markdown'
+			'parse_mode' => 'Markdown',
+			'reply_markup' => $keyboard
 		]);
 	}
 }

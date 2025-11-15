@@ -44,9 +44,7 @@ RUN composer dump-autoload --optimize
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 # Оптимизация для production
-RUN php artisan config:cache || true \
-    && php artisan route:cache || true \
-    && php artisan view:cache || true
+RUN php artisan optimize:clear || true
 
 # Открытие порта
 EXPOSE 8000
