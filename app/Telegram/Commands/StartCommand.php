@@ -20,7 +20,7 @@ final class StartCommand extends Command
 			->row([
 				Keyboard::inlineButton([
 					'text' => '🎿 Проверить подъемники',
-					'callback_data' => 'check_lifts'
+					'callback_data' => 'lifts'
 				])
 			]);
 
