@@ -15,6 +15,7 @@ class SetBotWebhookCommand extends Command
 
     public function handle(): int
     {
+		$this->info(sprintf("Set webhook: %s", route('webhook')));
 	    Telegram::setWebhook(['url' => route('webhook')]);
 	    
 		return parent::SUCCESS;

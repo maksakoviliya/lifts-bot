@@ -23,6 +23,8 @@ final class StartCommand extends Command
 					'callback_data' => 'lifts'
 				])
 			]);
+		
+//		$this->
 
 		$this->replyWithMessage([
 			'text' => "👋 Привет! Я бот для проверки статусов подъемников.\n\nИспользуй команду /lifts или нажми кнопку ниже.",
