@@ -21,10 +21,10 @@ final class WebhookController extends Controller
 	{
 		$update = Telegram::getWebhookUpdate();
 		
-		$this->usersService->processUser($update);
-		
 		$callbackQuery = $update->callbackQuery;
 		if ($callbackQuery) {
+			$this->usersService->processUser($update);
+			
 			$callbackData = $callbackQuery->data;
 			$message = $callbackQuery->message;
 			Log::info('Message', [
