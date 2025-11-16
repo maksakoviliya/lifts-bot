@@ -1,17 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use App\Telegram\Commands\LiftsCommand;
+use App\Models\Lift;
+use App\Services\Users\UsersService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Telegram\Bot\Laravel\Facades\Telegram;
 
-class WebhookController extends Controller
+final class WebhookController extends Controller
 {
+	public function __construct(private readonly UsersService $usersService)
+	{
+	}
+
 	public function __invoke(Request $request): string
 	{
 		$update = Telegram::getWebhookUpdate();
+		
+		$this->usersService->processUser($update);
+		
 		$callbackQuery = $update->callbackQuery;
 		if ($callbackQuery) {
 			$callbackData = $callbackQuery->data;
@@ -41,10 +52,10 @@ class WebhookController extends Controller
 					]);
 					break;
 			}
-			
+
 			return 'ok';
 		}
-		
+
 		$update = Telegram::commandsHandler(true);
 
 		Log::info('Обработка обновления', [
@@ -53,5 +64,34 @@ class WebhookController extends Controller
 		]);
 
 		return 'ok';
+	}
+
+	public function test(Request $request)
+	{
+//		$groups = Lift::query()->get()->groupBy('data.operator');
+
+//		if ($lifts->isEmpty()) {
+//			$this->replyWithMessage([
+//				'text' => "Пока нет данных о подъемниках ❗️"
+//			]);
+//			return;
+//		}
+
+//		$output = "🎿 *Статусы подъемников*";
+//		
+//		foreach ($groups as $key => $group) {
+//			$output .= "\n\n*$key:*\n";
+//
+//			$output .= $group->map(function ($lift) {
+//				return sprintf(
+//					"%s: %s",
+//					$this->processName($lift->name),
+//					$lift->is_active ? '✅ Работает' : '❌ Закрыт'
+//				);
+//			})->implode("\n");
+//		}
+//
+//		
+//		dd($output);
 	}
 }

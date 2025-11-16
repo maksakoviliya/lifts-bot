@@ -8,3 +8,4 @@ Route::get('/', function () {
 });
 
 Route::post('/webhook', WebhookController::class)->name('webhook');
+Route::get('test', [WebhookController::class, 'test']);

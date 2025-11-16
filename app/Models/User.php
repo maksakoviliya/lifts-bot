@@ -28,6 +28,11 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+	    'telegram_id',
+	    'username',
+	    'first_name',
+	    'last_name',
+	    'usage_count',
     ];
 
     /**

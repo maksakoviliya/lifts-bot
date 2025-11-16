@@ -24,8 +24,6 @@ final class StartCommand extends Command
 				])
 			]);
 		
-//		$this->
-
 		$this->replyWithMessage([
 			'text' => "👋 Привет! Я бот для проверки статусов подъемников.\n\nИспользуй команду /lifts или нажми кнопку ниже.",
 			'reply_markup' => $keyboard

@@ -3,6 +3,7 @@
 namespace App\Telegram\Commands;
 
 use App\Models\Lift;
+use Illuminate\Support\Str;
 use Telegram\Bot\Commands\Command;
 use Telegram\Bot\Keyboard\Keyboard;
 
@@ -22,30 +23,39 @@ class LiftsCommand extends Command
 					'callback_data' => 'lifts'
 				])
 			]);
-		
-		$lifts = Lift::query()->get();
 
-		if ($lifts->isEmpty()) {
+		$groups = Lift::query()->get()->groupBy('data.operator');
+
+		if ($groups->isEmpty()) {
 			$this->replyWithMessage([
 				'text' => "Пока нет данных о подъемниках ❗️"
 			]);
 			return;
 		}
 
-		$output = "🎿 *Статусы подъемников*\n\n";
+		$output = "🎿 *Статусы подъемников*";
 
-		$output .= $lifts->map(function ($lift) {
-			return sprintf(
-				"%s: %s",
-				$lift->name,
-				$lift->is_active ? '✅ Работает' : '❌ Закрыт'
-			);
-		})->implode("\n");
+		foreach ($groups as $key => $group) {
+			$output .= "\n\n*$key:*\n";
+
+			$output .= $group->map(function ($lift) {
+				return sprintf(
+					"%s: %s",
+					$this->processName($lift->name),
+					$lift->is_active ? '✅ Работает' : '❌ Закрыт'
+				);
+			})->implode("\n");
+		}
 
 		$this->replyWithMessage([
 			'text' => $output,
 			'parse_mode' => 'Markdown',
 			'reply_markup' => $keyboard
 		]);
+	}
+
+	protected function processName(string $name): string
+	{
+		return Str::replace(['Гондольный подъёмник', 'Кресельный подъёмник'], ['🚠', '🪑'], $name);
 	}
 }
