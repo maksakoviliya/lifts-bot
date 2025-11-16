@@ -16,7 +16,7 @@ final class UsersService
 		Log::info('Update: ', [
 			'updateData' => $update
 		]);
-		
+
 		$chat = $update->message?->chat;
 		if (!$chat) {
 			Log::alert('No chat in update', [
@@ -24,25 +24,26 @@ final class UsersService
 			]);
 			return;
 		}
-		
+
 		$type = $chat->type;
 		if ($type === 'private') {
 			$user = User::query()
 				->where('telegram_id', $chat->id)
+				->orWhere('email', "_$chat->id@t.me")
 				->first();
-			
+
 			if (!$user) {
 				$user = User::query()
 					->create([
 						'name' => $chat->username,
 						'email' => "_$chat->id@t.me",
 						'first_name' => $chat->first_name,
-			            'last_name' => $chat->last_name,
-			            'username' => $chat->username,
+						'last_name' => $chat->last_name,
+						'username' => $chat->username,
 						'password' => Hash::make($chat->username)
 					]);
 			}
-			
+
 			$user->update([
 				'usage_count' => $user->usage_count + 1
 			]);
