@@ -58,6 +58,8 @@ final class WebhookController extends Controller
 
 		$update = Telegram::commandsHandler(true);
 
+		$this->usersService->processUser($update);
+
 		Log::info('Обработка обновления', [
 			'update' => $update->updateId,
 			'message' => $update->getMessage(),
