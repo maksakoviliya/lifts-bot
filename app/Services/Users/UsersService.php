@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Users;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Objects\Update;
 
@@ -38,6 +39,7 @@ final class UsersService
 						'first_name' => $chat->first_name,
 			            'last_name' => $chat->last_name,
 			            'username' => $chat->username,
+						'password' => Hash::make($chat->username)
 					]);
 			}
 			

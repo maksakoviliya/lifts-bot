@@ -23,7 +23,6 @@ class UserForm
 				TextInput::make('first_name'),
 				TextInput::make('last_name'),
 				TextInput::make('usage_count'),
-                DateTimePicker::make('email_verified_at'),
                 TextInput::make('password')
                     ->password()
                     ->required(),
