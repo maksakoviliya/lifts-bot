@@ -20,6 +20,8 @@ final class WebhookController extends Controller
 	public function __invoke(Request $request): string
 	{
 		$update = Telegram::getWebhookUpdate();
+
+		$this->usersService->processUser($update);
 		
 		$callbackQuery = $update->callbackQuery;
 		if ($callbackQuery) {

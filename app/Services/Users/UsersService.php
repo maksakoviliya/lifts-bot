@@ -13,39 +13,36 @@ final class UsersService
 {
 	public function processUser(Update $update): void
 	{
-		Log::info('Update: ', [
-			'updateData' => $update
-		]);
+		Log::info('Update: ', ['updateData' => $update]);
 
-		$chat = $update->message?->chat;
+		$chat = $update->message?->chat
+			?? $update->callbackQuery?->message?->chat;
+
 		if (!$chat) {
-			Log::alert('No chat in update', [
-				'update' => $update
-			]);
+			Log::alert('No chat in update', ['update' => $update]);
 			return;
 		}
 
-		$type = $chat->type;
-		if ($type === 'private') {
+		if ($chat->type === 'private') {
 			$user = User::query()
 				->where('telegram_id', $chat->id)
 				->orWhere('email', "_$chat->id@t.me")
 				->first();
 
 			if (!$user) {
-				$user = User::query()
-					->create([
-						'name' => $chat->username,
-						'email' => "_$chat->id@t.me",
-						'first_name' => $chat->first_name,
-						'last_name' => $chat->last_name,
-						'username' => $chat->username,
-						'password' => Hash::make($chat->username)
-					]);
+				$user = User::query()->create([
+					'telegram_id' => $chat->id,
+					'name' => $chat->username,
+					'email' => "_$chat->id@t.me",
+					'first_name' => $chat->first_name,
+					'last_name' => $chat->last_name,
+					'username' => $chat->username,
+					'password' => Hash::make($chat->username),
+				]);
 			}
 
 			$user->update([
-				'usage_count' => $user->usage_count + 1
+				'usage_count' => $user->usage_count + 1,
 			]);
 		}
 	}
