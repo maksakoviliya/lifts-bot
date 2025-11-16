@@ -56,6 +56,6 @@ class LiftsCommand extends Command
 
 	protected function processName(string $name): string
 	{
-		return Str::replace(['Гондольный подъёмник', 'Кресельный подъёмник'], ['🚠', '🚡'], $name);
+		return Str::replace(['Гондольный подъёмник', 'Кресельный подъёмник'], ['🚠', '🪑'], $name);
 	}
 }
