@@ -27,7 +27,8 @@ final class UsersService
 		$type = $chat->type;
 		if ($type === 'private') {
 			$user = User::query()
-				->where('telegram_id', $chat->id);
+				->where('telegram_id', $chat->id)
+				->first();
 			
 			if (!$user) {
 				$user = User::query()
@@ -41,7 +42,7 @@ final class UsersService
 			}
 			
 			$user->update([
-				'usage_count' => $user->usage_count++
+				'usage_count' => $user->usage_count + 1
 			]);
 		}
 	}
