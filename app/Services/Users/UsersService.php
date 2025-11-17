@@ -32,11 +32,11 @@ final class UsersService
 			if (!$user) {
 				$user = User::query()->create([
 					'telegram_id' => $chat->id,
-					'name' => $chat->username,
+					'name' => $chat->username ?: "name_$chat->id",
 					'email' => "_$chat->id@t.me",
-					'first_name' => $chat->first_name,
-					'last_name' => $chat->last_name,
-					'username' => $chat->username,
+					'first_name' => $chat->first_name ?: null,
+					'last_name' => $chat->last_name ?: null,
+					'username' => $chat->username ?: "name_$chat->id",
 					'password' => Hash::make($chat->username),
 				]);
 			}

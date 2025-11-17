@@ -41,8 +41,8 @@ class LiftsCommand extends Command
 			$output .= $group->map(function ($lift) {
 				return sprintf(
 					"%s: %s",
-					$this->processName($lift->name),
-					$lift->is_active ? '✅' : '❌'
+					$lift->is_active ? '✅' : '❌',
+					$this->processName($lift->name)
 				);
 			})->implode("\n");
 		}
@@ -56,6 +56,9 @@ class LiftsCommand extends Command
 
 	protected function processName(string $name): string
 	{
-		return Str::replace(['Гондольный подъёмник', 'Кресельный подъёмник ', 'Гондольно-кресельный подъёмник ' ], ['🚠', '', ''], $name);
+		if (Str::contains($name, 'Гондольный подъёмник')) {
+			$name .= '🚠';
+		}
+		return Str::replace(['Гондольный подъёмник', 'Кресельный подъёмник ', 'Гондольно-кресельный подъёмник ' ], '', $name);
 	}
 }
