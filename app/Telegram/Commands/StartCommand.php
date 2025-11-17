@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Telegram\Commands;
 
+use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Commands\Command;
+use Telegram\Bot\Exceptions\TelegramOtherException;
 use Telegram\Bot\Keyboard\Keyboard;
 
 final class StartCommand extends Command
@@ -13,6 +15,9 @@ final class StartCommand extends Command
 
 	protected string $description = 'Start Command to get you started';
 
+	/**
+	 * @throws TelegramOtherException
+	 */
 	public function handle(): void
 	{
 		$keyboard = Keyboard::make()
@@ -23,10 +28,21 @@ final class StartCommand extends Command
 					'callback_data' => 'lifts'
 				])
 			]);
-		
-		$this->replyWithMessage([
-			'text' => "👋 Привет! Я бот для проверки статусов подъемников.\n\nИспользуй команду /lifts или нажми кнопку ниже.",
-			'reply_markup' => $keyboard
-		]);
+
+		try {
+			$this->replyWithMessage([
+				'text' => "👋 Привет! Я бот для проверки статусов подъемников.\n\nИспользуй команду /lifts или нажми кнопку ниже.",
+				'reply_markup' => $keyboard
+			]);
+		} catch (TelegramOtherException $e) {
+			if (str_contains($e->getMessage(), 'bot was blocked by the user')) {
+				Log::warning("User blocked the bot", [
+					'update' => $this->update
+				]);
+				return;
+			}
+
+			throw $e;
+		}
 	}
 }
