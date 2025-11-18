@@ -15,18 +15,20 @@ final class LiftService
 	{
 		$this->data = $data;
 
-		return Lift::query()
+		$lift = Lift::query()
 			->updateOrCreate([
 				'name' => $this->getStringValue('name')
 			], [
 				'raise_time' => $this->getIntValue('rise_time'),
 				'length' => $this->getIntValue('length'),
-				'is_active' => $this->getStatus(),
 				'data' => [
 					'operator' => $this->getStringValue('operator')
 				]
-			])
-			->touch();
+			]);
+
+		$lift->update([
+			'is_active' => $this->getStatus($lift),
+		]);
 	}
 
 	protected function getStringValue(string $key): string
@@ -38,9 +40,22 @@ final class LiftService
 	{
 		return (int)filter_var(Arr::get($this->data, $key), FILTER_SANITIZE_NUMBER_INT);
 	}
-	
-	protected function getStatus(): bool
+
+	protected function getStatus(Lift $lift): bool
 	{
+		$isEnabled = !is_null($lift->enabled_at) && !is_null($lift->enabled_by);
+		$isDisabled = !is_null($lift->disabled_at) && !is_null($lift->disabled_by);
+
+		if ($isEnabled && $isDisabled) {
+			return $lift->enabled_at > $lift->disabled_at;
+		}
+		elseif ($isEnabled) {
+			return true;
+		}
+		elseif ($isDisabled) {
+			return false;
+		}
+		
 		$status = $this->getStringValue('status');
 		return match ($status) {
 			'Работает' => true,
