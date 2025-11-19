@@ -32,7 +32,7 @@ final class LiftForm
 						KeyValue::make('data')
 					]),
 					Section::make([
-						Hidden::make('enabled_at')->nullable(),
+						Hidden::make('disabled_by')->nullable(),
 						Hidden::make('enabled_by')->nullable(),
 						
 						Toggle::make('is_active')
@@ -47,6 +47,11 @@ final class LiftForm
 							])
 							->default('auto')
 							->reactive()
+							->afterStateHydrated(function ($set, $state, $record) {
+								if ($record) {
+									$set('status', $record->status);
+								}
+							})
 							->afterStateUpdated(function ($set, $state, $get) {
 								$currentUser = Auth::id();
 

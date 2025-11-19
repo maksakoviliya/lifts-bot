@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Database\Factories\LiftFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -30,20 +31,18 @@ final class Lift extends Model
 		'data' => 'array'
 	];
 	
-	protected $appends = [
-		'status'
-	];
-
-	public function getStatusAttribute(): string
+	public function Status(): Attribute
 	{
-		if (!is_null($this->enabled_at) && !is_null($this->enabled_by)) {
-			return 'enabled';
-		}
+		return Attribute::get(function (mixed $value, array $attributes) {
+			if (!is_null($attributes['enabled_at']) && !is_null($attributes['enabled_by'])) {
+				return 'enabled';
+			}
 
-		if (!is_null($this->disabled_at) && !is_null($this->disabled_by)) {
-			return 'disabled';
-		}
+			if (!is_null($attributes['disabled_at']) && !is_null($attributes['disabled_by'])) {
+				return 'disabled';
+			}
 
-		return 'auto';
+			return 'auto';
+		});
 	}
 }
