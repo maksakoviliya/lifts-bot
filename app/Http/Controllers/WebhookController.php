@@ -6,10 +6,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Lift;
 use App\Services\Users\UsersService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Telegram\Bot\Laravel\Facades\Telegram;
+
+use function Sentry\captureException;
 
 final class WebhookController extends Controller
 {
@@ -39,11 +42,24 @@ final class WebhookController extends Controller
 
 			switch ($callbackData) {
 				case 'lifts':
-					Telegram::triggerCommand('lifts', $update);
-					Telegram::deleteMessage([
-						'chat_id' => $chatId,
-						'message_id' => $message->messageId
-					]);
+					try {
+						Telegram::triggerCommand('lifts', $update);
+						Telegram::deleteMessage([
+							'chat_id' => $chatId,
+							'message_id' => $message->messageId
+						]);
+					} catch (Exception $e) {
+						Log::error("Error processing lifts command", [
+							'exception' => $e,
+							'update' => $update,
+						]);
+						captureException($e);
+
+						Telegram::sendMessage([
+							'chat_id' => $chatId,
+							'text' => 'Произошла ошибка при получении статусов подъемников. Пожалуйста, попробуйте позже.'
+						]);
+					}
 					break;
 				default:
 					Telegram::sendMessage([
