@@ -40,8 +40,8 @@ class LiftsCommand extends Command
 
 			$output .= $group->map(function ($lift) {
 				return sprintf(
-					"%s: %s",
-					$lift->is_active ? '✅' : '❌',
+					"%s %s",
+					$lift->is_active ? '🟢' : '🔴',
 					$this->processName($lift->name)
 				);
 			})->implode("\n");
