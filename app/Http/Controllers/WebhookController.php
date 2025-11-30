@@ -66,6 +66,12 @@ final class WebhookController extends Controller
             ]);
 
             $status = $chatMember->getStatus();
+            
+            Log::debug('Проверка статуса подписки', [
+                'user_id' => $userId,
+                'status' => $status,
+                'chat_member' => $chatMember
+            ]);
 
             // Разрешенные статусы: создатель, администратор, участник
             return in_array($status, ['creator', 'administrator', 'member']);
