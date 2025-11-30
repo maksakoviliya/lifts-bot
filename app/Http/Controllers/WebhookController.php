@@ -14,228 +14,232 @@ use function Sentry\captureException;
 
 final class WebhookController extends Controller
 {
-	// ID канала/группы для проверки подписки
-	private const REQUIRED_CHANNEL = '@sheregeshafisha';
-	private const CHANNEL_URL = 'https://t.me/sheregeshafisha';
-	
-	public function __construct(private readonly UsersService $usersService)
-	{
-	}
+    // ID канала/группы для проверки подписки
+    private const REQUIRED_CHANNEL = '@sheregeshafisha';
+    private const CHANNEL_URL = 'https://t.me/sheregeshafisha';
 
-	public function __invoke(Request $request): string
-	{
-		$update = Telegram::getWebhookUpdate();
+    public function __construct(private readonly UsersService $usersService)
+    {
+    }
 
-		$this->usersService->processUser($update);
+    public function __invoke(Request $request): string
+    {
+        $update = Telegram::getWebhookUpdate();
 
-		// Получаем ID пользователя из разных типов обновлений
-		$userId = $this->getUserId($update);
-		$chatId = $this->getChatId($update);
+        $this->usersService->processUser($update);
 
-		// Проверяем подписку перед обработкой
-		if ($userId && $chatId && !$this->checkSubscription($userId)) {
-			$this->sendSubscriptionRequired($chatId);
-			return 'ok';
-		}
+        // Получаем ID пользователя из разных типов обновлений
+        $userId = $this->getUserId($update);
+        $chatId = $this->getChatId($update);
 
-		$callbackQuery = $update->callbackQuery;
-		if ($callbackQuery) {
-			$this->handleCallbackQuery($callbackQuery, $update);
-			return 'ok';
-		}
+        // Проверяем подписку перед обработкой
+        if ($userId && $chatId && !$this->checkSubscription($userId)) {
+            $this->sendSubscriptionRequired($chatId);
+            return 'ok';
+        }
 
-		$update = Telegram::commandsHandler(true);
+        $callbackQuery = $update->callbackQuery;
+        if ($callbackQuery) {
+            $this->handleCallbackQuery($callbackQuery, $update);
+            return 'ok';
+        }
 
-		Log::info('Обработка обновления', [
-			'update' => $update->updateId,
-			'message' => $update->getMessage(),
-		]);
+        $update = Telegram::commandsHandler(true);
 
-		return 'ok';
-	}
+        Log::info('Обработка обновления', [
+            'update' => $update->updateId,
+            'message' => $update->getMessage(),
+        ]);
 
-	/**
-	 * Проверяет, подписан ли пользователь на требуемый канал
-	 */
-	private function checkSubscription(int $userId): bool
-	{
-		try {
-			$chatMember = Telegram::getChatMember([
-				'chat_id' => self::REQUIRED_CHANNEL,
-				'user_id' => $userId
-			]);
+        return 'ok';
+    }
 
-			$status = $chatMember->getStatus();
+    /**
+     * Проверяет, подписан ли пользователь на требуемый канал
+     */
+    private function checkSubscription(int $userId): bool
+    {
+        try {
+            $chatMember = Telegram::getChatMember([
+                'chat_id' => self::REQUIRED_CHANNEL,
+                'user_id' => $userId
+            ]);
 
-			// Разрешенные статусы: создатель, администратор, участник
-			return in_array($status, ['creator', 'administrator', 'member']);
-		} catch (Exception $e) {
-			Log::error('Ошибка проверки подписки', [
-				'user_id' => $userId,
-				'exception' => $e->getMessage()
-			]);
+            $status = $chatMember->getStatus();
 
-			// В случае ошибки разрешаем доступ, чтобы не блокировать пользователей
-			return true;
-		}
-	}
+            // Разрешенные статусы: создатель, администратор, участник
+            return in_array($status, ['creator', 'administrator', 'member']);
+        } catch (Exception $e) {
+            Log::error('Ошибка проверки подписки', [
+                'user_id' => $userId,
+                'exception' => $e->getMessage()
+            ]);
 
-	/**
-	 * Отправляет сообщение с требованием подписаться
-	 */
-	private function sendSubscriptionRequired(int $chatId): void
-	{
-		try {
-			Telegram::sendMessage([
-				'chat_id' => $chatId,
-				'text' => "❌ *Для использования бота необходимо подписаться на наш канал!*\n\n" .
-					"После подписки нажмите кнопку \"Я подписался\" для проверки.",
-				'parse_mode' => 'Markdown',
-				'reply_markup' => json_encode([
-					'inline_keyboard' => [
-						[
-							['text' => '📢 Подписаться на канал', 'url' => self::CHANNEL_URL]
-						],
-						[
-							['text' => '✅ Я подписался', 'callback_data' => 'verify_subscription']
-						]
-					]
-				])
-			]);
-		} catch (Exception $e) {
-			Log::error('Ошибка отправки сообщения о подписке', [
-				'chat_id' => $chatId,
-				'exception' => $e->getMessage()
-			]);
-		}
-	}
+            // В случае ошибки разрешаем доступ, чтобы не блокировать пользователей
+            return true;
+        }
+    }
 
-	/**
-	 * Обрабатывает callback query
-	 */
-	private function handleCallbackQuery($callbackQuery, $update): void
-	{
-		$callbackData = $callbackQuery->data;
-		$message = $callbackQuery->message;
+    /**
+     * Отправляет сообщение с требованием подписаться
+     */
+    private function sendSubscriptionRequired(int $chatId): void
+    {
+        try {
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => "❌ *Для использования бота необходимо подписаться на наш канал!*\n\n" .
+                    "После подписки нажмите кнопку \"Я подписался\" для проверки.",
+                'parse_mode' => 'Markdown',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        [
+                            ['text' => '📢 Подписаться на канал', 'url' => self::CHANNEL_URL]
+                        ],
+                        [
+                            ['text' => '✅ Я подписался', 'callback_data' => 'verify_subscription']
+                        ]
+                    ]
+                ])
+            ]);
+        } catch (Exception $e) {
+            Log::error('Ошибка отправки сообщения о подписке', [
+                'chat_id' => $chatId,
+                'exception' => $e->getMessage()
+            ]);
+        }
+    }
 
-		Log::info('Message', [
-			'message' => $message
-		]);
+    /**
+     * Обрабатывает callback query
+     */
+    private function handleCallbackQuery($callbackQuery, $update): void
+    {
+        $callbackData = $callbackQuery->data;
+        $message = $callbackQuery->message;
 
-		$chatId = $message->chat->id;
+        Log::info('Message', [
+            'message' => $message
+        ]);
 
-		Log::info("Callback received", [
-			'data' => $callbackData,
-			'chat_id' => $chatId,
-		]);
+        $chatId = $message->chat->id;
 
-		// Обработка проверки подписки
-		if ($callbackData === 'verify_subscription') {
-			$this->verifySubscription($callbackQuery);
-			return;
-		}
+        Log::info("Callback received", [
+            'data' => $callbackData,
+            'chat_id' => $chatId,
+        ]);
 
-		switch ($callbackData) {
-			case 'lifts':
-				try {
-					Telegram::triggerCommand('lifts', $update);
-					Telegram::deleteMessage([
-						'chat_id' => $chatId,
-						'message_id' => $message->messageId
-					]);
-				} catch (Exception $e) {
-					Log::error("Error processing lifts command", [
-						'exception' => $e,
-						'update' => $update,
-					]);
-					captureException($e);
+        // Обработка проверки подписки
+        if ($callbackData === 'verify_subscription') {
+            $this->verifySubscription($callbackQuery);
+            return;
+        }
 
-					Telegram::sendMessage([
-						'chat_id' => $chatId,
-						'text' => 'Произошла ошибка при получении статусов подъемников. Пожалуйста, попробуйте позже.'
-					]);
-				}
-				break;
-			default:
-				Telegram::sendMessage([
-					'chat_id' => $chatId,
-					'text' => 'Неизвестная команда.'
-				]);
-				break;
-		}
-	}
+        switch ($callbackData) {
+            case 'lifts':
+                try {
+                    Telegram::triggerCommand('lifts', $update);
+                    Telegram::deleteMessage([
+                        'chat_id' => $chatId,
+                        'message_id' => $message->messageId
+                    ]);
+                } catch (Exception $e) {
+                    Log::error("Error processing lifts command", [
+                        'exception' => $e,
+                        'update' => $update,
+                    ]);
+                    captureException($e);
 
-	/**
-	 * Проверяет подписку при нажатии на кнопку "Я подписался"
-	 */
-	private function verifySubscription($callbackQuery): void
-	{
-		$userId = $callbackQuery->from->id;
-		$chatId = $callbackQuery->message->chat->id;
-		$messageId = $callbackQuery->message->messageId;
+                    Telegram::sendMessage([
+                        'chat_id' => $chatId,
+                        'text' => 'Произошла ошибка при получении статусов подъемников. Пожалуйста, попробуйте позже.'
+                    ]);
+                }
+                break;
+            default:
+                Telegram::sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => 'Неизвестная команда.'
+                ]);
+                break;
+        }
+    }
 
-		if ($this->checkSubscription($userId)) {
-			try {
-				Telegram::editMessageText([
-					'chat_id' => $chatId,
-					'message_id' => $messageId,
-					'text' => "✅ *Отлично!*\n\nВы подписаны на канал. Теперь вы можете пользоваться ботом.\n\nНапишите /start для начала работы.",
-					'parse_mode' => 'Markdown'
-				]);
-			} catch (Exception $e) {
-				Log::error('Ошибка обновления сообщения', [
-					'exception' => $e->getMessage()
-				]);
-			}
-		} else {
-			try {
-				Telegram::answerCallbackQuery([
-					'callback_query_id' => $callbackQuery->id,
-					'text' => '❌ Вы еще не подписались на канал! Пожалуйста, подпишитесь и попробуйте снова.',
-					'show_alert' => true
-				]);
-			} catch (Exception $e) {
-				Log::error('Ошибка ответа на callback', [
-					'exception' => $e->getMessage()
-				]);
-			}
-		}
-	}
+    /**
+     * Проверяет подписку при нажатии на кнопку "Я подписался"
+     */
+    private function verifySubscription($callbackQuery): void
+    {
+        $userId = $callbackQuery->from->id;
+        $chatId = $callbackQuery->message->chat->id;
+        $messageId = $callbackQuery->message->messageId;
 
-	/**
-	 * Получает ID пользователя из update
-	 */
-	private function getUserId($update): ?int
-	{
-		if ($update->getMessage()) {
-			return $update->getMessage()->from->id ?? null;
-		}
+        if ($this->checkSubscription($userId)) {
+            try {
+                Telegram::editMessageText([
+                    'chat_id' => $chatId,
+                    'message_id' => $messageId,
+                    'text' => "✅ *Отлично!*\n\nВы подписаны на канал. Теперь вы можете пользоваться ботом.\n\nНапишите /start для начала работы.",
+                    'parse_mode' => 'Markdown'
+                ]);
+            } catch (Exception $e) {
+                Log::error('Ошибка обновления сообщения', [
+                    'exception' => $e->getMessage()
+                ]);
+            }
+        } else {
+            try {
+                Telegram::answerCallbackQuery([
+                    'callback_query_id' => $callbackQuery->id,
+                    'text' => '❌ Вы еще не подписались на канал! Пожалуйста, подпишитесь и попробуйте снова.',
+                    'show_alert' => true
+                ]);
+            } catch (Exception $e) {
+                Log::error('Ошибка ответа на callback', [
+                    'exception' => $e->getMessage()
+                ]);
+            }
+        }
+    }
 
-		if ($update->callbackQuery) {
-			return $update->callbackQuery->from->id ?? null;
-		}
+    /**
+     * Получает ID пользователя из update
+     */
+    private function getUserId($update): ?int
+    {
+        if ($update->getMessage()) {
+            return $update->getMessage()->from->id ?? null;
+        }
 
-		return null;
-	}
+        if ($update->callbackQuery) {
+            return $update->callbackQuery->from->id ?? null;
+        }
 
-	/**
-	 * Получает ID чата из update
-	 */
-	private function getChatId($update): ?int
-	{
-		if ($update->getMessage()) {
-			return $update->getMessage()->chat->id ?? null;
-		}
+        if ($update->myChatMember) {
+            return $update->myChatMember->from->id ?? null;
+        }
 
-		if ($update->callbackQuery) {
-			return $update->callbackQuery->message->chat->id ?? null;
-		}
+        return null;
+    }
 
-		return null;
-	}
+    /**
+     * Получает ID чата из update
+     */
+    private function getChatId($update): ?int
+    {
+        if ($update->getMessage()) {
+            return $update->getMessage()->chat->id ?? null;
+        }
 
-	public function test(Request $request)
-	{
+        if ($update->callbackQuery) {
+            return $update->callbackQuery->message->chat->id ?? null;
+        }
+
+        return null;
+    }
+
+    public function test(Request $request)
+    {
 //		$groups = Lift::query()->get()->groupBy('data.operator');
 
 //		if ($lifts->isEmpty()) {
@@ -261,5 +265,5 @@ final class WebhookController extends Controller
 //
 //		
 //		dd($output);
-	}
+    }
 }
