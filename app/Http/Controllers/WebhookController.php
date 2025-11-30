@@ -221,13 +221,14 @@ final class WebhookController extends Controller
             return $update->callbackQuery->from->id ?? null;
         }
 
-        if ($update->myChatMember && $update->myChatMember->from) {
+        // Обработка my_chat_member (когда бота добавляют/удаляют)
+        if (isset($update['my_chat_member']) && isset($update['my_chat_member']['from'])) {
             Log::debug('Getting user ID from myChatMember' . __METHOD__, [
-                '$update->myChatMember' => $update->myChatMember,
+                'myChatMember' => $update['my_chat_member'],
             ]);
-            return $update->myChatMember->from->id ?? null;
+            return $update['my_chat_member']['from']['id'] ?? null;
         }
-        
+
         Log::debug('User ID not found in update' . __METHOD__, [
             '$update' => $update,
         ]);
