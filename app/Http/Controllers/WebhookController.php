@@ -207,7 +207,7 @@ final class WebhookController extends Controller
      */
     private function getUserId($update): ?int
     {
-        if (isset( $update->getMessage()->from)) {
+        if (isset($update->getMessage()->from)) {
             Log::debug('Getting user ID from message' . __METHOD__, [
                 '$update->getMessage()' => $update->getMessage(),
             ]);
@@ -240,11 +240,17 @@ final class WebhookController extends Controller
      */
     private function getChatId($update): ?int
     {
-        if ($update->getMessage()) {
+        if (isset($update->getMessage()->chat)) {
+            Log::debug('getChatId', [
+                'hetMessage' => $update->getMessage()
+            ]);
             return $update->getMessage()->chat->id ?? null;
         }
 
-        if ($update->callbackQuery) {
+        if (isset($update->callbackQuery->message->chat)) {
+            Log::debug('getChatId', [
+                'hetMessage' => $update->callbackQuery
+            ]);
             return $update->callbackQuery->message->chat->id ?? null;
         }
 
