@@ -208,16 +208,29 @@ final class WebhookController extends Controller
     private function getUserId($update): ?int
     {
         if ($update->getMessage()) {
+            Log::debug('Getting user ID from message' . __METHOD__, [
+                '$update->getMessage()' => $update->getMessage(),
+            ]);
             return $update->getMessage()->from->id ?? null;
         }
 
         if ($update->callbackQuery) {
+            Log::debug('Getting user ID from callbackQuery' . __METHOD__, [
+                '$update->callbackQuery' => $update->callbackQuery,
+            ]);
             return $update->callbackQuery->from->id ?? null;
         }
 
         if ($update->myChatMember) {
+            Log::debug('Getting user ID from myChatMember' . __METHOD__, [
+                '$update->myChatMember' => $update->myChatMember,
+            ]);
             return $update->myChatMember->from->id ?? null;
         }
+        
+        Log::debug('User ID not found in update' . __METHOD__, [
+            '$update' => $update,
+        ]);
 
         return null;
     }
