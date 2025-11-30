@@ -65,7 +65,7 @@ final class WebhookController extends Controller
                 'user_id' => $userId
             ]);
 
-            $status = $chatMember->getStatus();
+            $status = $chatMember->status;
             
             Log::debug('Проверка статуса подписки', [
                 'user_id' => $userId,
