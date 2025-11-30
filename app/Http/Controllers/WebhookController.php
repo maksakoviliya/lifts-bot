@@ -207,26 +207,25 @@ final class WebhookController extends Controller
      */
     private function getUserId($update): ?int
     {
-        if ($update->getMessage() && $update->getMessage()->from) {
+        if (isset( $update->getMessage()->from)) {
             Log::debug('Getting user ID from message' . __METHOD__, [
                 '$update->getMessage()' => $update->getMessage(),
             ]);
             return $update->getMessage()->from->id ?? null;
         }
 
-        if ($update->callbackQuery && $update->callbackQuery->from) {
+        if (isset($update->callbackQuery->from)) {
             Log::debug('Getting user ID from callbackQuery' . __METHOD__, [
                 '$update->callbackQuery' => $update->callbackQuery,
             ]);
             return $update->callbackQuery->from->id ?? null;
         }
 
-        // Обработка my_chat_member (когда бота добавляют/удаляют)
-        if (isset($update['my_chat_member']) && isset($update['my_chat_member']['from'])) {
+        if (isset($update->callbackQuery->my_chat_member)) {
             Log::debug('Getting user ID from myChatMember' . __METHOD__, [
-                'myChatMember' => $update['my_chat_member'],
+                'myChatMember' => $update->my_chat_member,
             ]);
-            return $update['my_chat_member']['from']['id'] ?? null;
+            return $update->callbackQuery->my_chat_member->from->id ?? null;
         }
 
         Log::debug('User ID not found in update' . __METHOD__, [
