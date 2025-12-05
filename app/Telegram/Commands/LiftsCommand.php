@@ -48,7 +48,7 @@ class LiftsCommand extends Command
 			})->implode("\n");
 		}
 
-        $output = $output . "\n" . Cache::get('weather');
+        $output = $output . "\n\n" . Cache::get('weather');
 
 		$this->replyWithMessage([
 			'text' => $output,

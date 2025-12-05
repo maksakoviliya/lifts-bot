@@ -16,7 +16,7 @@ class WeatherService
         $mid = Arr::get($data, 'mid.0');
         $top = Arr::get($data, 'top.0');
 
-        $output = sprintf("🎿%s \n", $date->format('d.m.Y'));
+        $output = sprintf("О погоде: %s \n", $date->format('d.m.Y'));
 
         $bottomOutput = sprintf("🏞 Низ: %s\n", Arr::get($bottom, 'lang_ru.0.value'));
         $bottomOutput = $bottomOutput . sprintf(
