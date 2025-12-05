@@ -27,9 +27,9 @@ class FetchWeatherCommand extends Command
         $this->info('Key: ' . $key . "\n");
         $this->info('LatLng: ' . $latLng . "\n");
 
-        $date = Carbon::now('Asia/Novokuznetsk');
+        $date = Carbon::now('Asia/Novokuznetsk')->setMinutes(0);
         $dateFormatted = $date->format('Y-m-d');
-        $hour = Carbon::now('Asia/Novokuznetsk')->addHour()->hour;
+        $hour = $date->addHour()->hour;
 
         $response = Http::get($url, [
             'key' => $key,
@@ -52,7 +52,11 @@ class FetchWeatherCommand extends Command
         $hours = Arr::get($weather, 'hourly');
         $weatherService = new WeatherService();
 
-        $result = $weatherService->parse($date, $hours[$hour]);
+        $result = $weatherService->parse(
+            $date,
+            $date->addHour()->format('H:i'),
+            $hours[$hour]
+        );
 
         if ($result) {
             $this->info('Finished!');
