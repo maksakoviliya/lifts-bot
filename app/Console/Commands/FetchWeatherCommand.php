@@ -27,7 +27,6 @@ class FetchWeatherCommand extends Command
         $this->info('Key: ' . $key . "\n");
         $this->info('LatLng: ' . $latLng . "\n");
 
-
         $date = Carbon::now('Asia/Novokuznetsk');
         $dateFormatted = $date->format('Y-m-d');
         $hour = Carbon::now('Asia/Novokuznetsk')->addHour()->hour;
@@ -39,6 +38,7 @@ class FetchWeatherCommand extends Command
             'date' => $dateFormatted,
             'lang' => 'ru'
         ]);
+        dd($response->json(), $response->effectiveUri());
 
         if (!$response->successful()) {
             $this->error('Fetch weather failed');
