@@ -48,6 +48,14 @@ class FetchWeatherCommand extends Command
         $hours = Arr::get($weather, 'hourly');
         $weatherService = new WeatherService();
 
-        return $weatherService->parse($date->format('d.m.Y'), $hours[$hour]);
+        $result = $weatherService->parse($date, $hours[$hour]);
+
+        if ($result) {
+            $this->info('Finished!');
+        } else {
+            $this->error('Fetch weather failed!');
+        }
+
+        return $result;
     }
 }

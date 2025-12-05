@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\Cache;
 
 class WeatherService
 {
-    public function parse(string $date, array $data): int
+    public function parse(CarbonInterface $date, array $data): int
     {
         $bottom = Arr::get($data, 'bottom.0');
         $mid = Arr::get($data, 'mid.0');
         $top = Arr::get($data, 'top.0');
 
-        $output = sprintf("🎿 Шерегеш %s \n", $date);
+        $output = sprintf("🎿%s \n", $date->format('d.m.Y'));
 
         $bottomOutput = sprintf("🏞 Низ: %s\n", Arr::get($bottom, 'lang_ru.0.value'));
         $bottomOutput = $bottomOutput . sprintf(

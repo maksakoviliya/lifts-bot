@@ -3,6 +3,7 @@
 namespace App\Telegram\Commands;
 
 use App\Models\Lift;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Telegram\Bot\Commands\Command;
 use Telegram\Bot\Keyboard\Keyboard;
@@ -46,6 +47,8 @@ class LiftsCommand extends Command
 				);
 			})->implode("\n");
 		}
+
+        $output = $output . "\n" . Cache::get('weather');
 
 		$this->replyWithMessage([
 			'text' => $output,
