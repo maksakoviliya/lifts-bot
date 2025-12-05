@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'worldweatheronline' => [
+        'url' => env('WORLDWEATHERONONLINE_API_URL'),
+        'key' => env('WORLDWEATHERONONLINE_API_KEY'),
+        'latlng' => env('WORLDWEATHERONONLINE_LAT_LNG'),
+    ]
+
 ];

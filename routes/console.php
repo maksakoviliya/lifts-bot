@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::call(function () {
 	Artisan::call('app:parse-lifts-command');
 })->everyFifteenMinutes();
+
+Schedule::call(function () {
+	Artisan::call('app:fetch-weather');
+})->hourly();
