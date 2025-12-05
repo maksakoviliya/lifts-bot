@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 class WeatherService
 {
-    public function parse(CarbonInterface $date, array $data): int
+    public function parse(CarbonInterface $date, array $data): bool
     {
         $bottom = Arr::get($data, 'bottom.0');
         $mid = Arr::get($data, 'mid.0');

@@ -60,6 +60,6 @@ class FetchWeatherCommand extends Command
             $this->error('Fetch weather failed!');
         }
 
-        return $result;
+        return self::SUCCESS;
     }
 }
