@@ -38,7 +38,6 @@ class FetchWeatherCommand extends Command
             'date' => $dateFormatted,
             'lang' => 'ru'
         ]);
-        dd($response->json(), $response->effectiveUri());
 
         if (!$response->successful()) {
             $this->error('Fetch weather failed');
