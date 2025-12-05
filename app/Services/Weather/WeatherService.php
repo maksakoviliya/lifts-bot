@@ -23,14 +23,14 @@ class WeatherService
                 "🌡  %s°C  💨  %s км/ч",
                 Arr::get($bottom, 'tempC'),
                 Arr::get($bottom, 'windspeedKmph'),
-            ) . "\n\n";
+            ) . "\n";
 
         $midOutput = sprintf("⛰ Средина: %s\n", Arr::get($mid, 'lang_ru.0.value'));
         $midOutput = $midOutput . sprintf(
                 "🌡  %s°C  💨  %s км/ч",
                 Arr::get($mid, 'tempC'),
                 Arr::get($mid, 'windspeedKmph'),
-            )  . "\n\n";
+            )  . "\n";
 
         $topOutput = sprintf("🏔 Верх: %s\n", Arr::get($top, 'lang_ru.0.value'));
         $topOutput = $topOutput . sprintf(
