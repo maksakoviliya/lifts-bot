@@ -23,6 +23,11 @@ class FetchWeatherCommand extends Command
         $key = config('services.worldweatheronline.key');
         $latLng = config('services.worldweatheronline.latlng');
 
+        $this->info('Fetching weather from "' . $url . '"' . "\n");
+        $this->info('Key: ' . $key . "\n");
+        $this->info('LatLng: ' . $latLng . "\n");
+
+
         $date = Carbon::now('Asia/Novokuznetsk');
         $dateFormatted = $date->format('Y-m-d');
         $hour = Carbon::now('Asia/Novokuznetsk')->addHour()->hour;
