@@ -16,21 +16,21 @@ class WeatherService
         $mid = Arr::get($data, 'mid.0');
         $top = Arr::get($data, 'top.0');
 
-        $output = sprintf("*О погоде на %s* на %s \n", $date->format('d.m.Y'), $time);
+        $output = sprintf("*О погоде на %s на %s*\n", $date->format('d.m.Y'), $time);
 
         $bottomOutput = sprintf("🏞 Низ: %s\n", Arr::get($bottom, 'lang_ru.0.value'));
         $bottomOutput = $bottomOutput . sprintf(
                 "🌡  %s°C  💨  %s км/ч",
                 Arr::get($bottom, 'tempC'),
                 Arr::get($bottom, 'windspeedKmph'),
-            );
+            ) . "\n\n";
 
         $midOutput = sprintf("⛰ Средина: %s\n", Arr::get($mid, 'lang_ru.0.value'));
         $midOutput = $midOutput . sprintf(
                 "🌡  %s°C  💨  %s км/ч",
                 Arr::get($mid, 'tempC'),
                 Arr::get($mid, 'windspeedKmph'),
-            );
+            )  . "\n\n";
 
         $topOutput = sprintf("🏔 Верх: %s\n", Arr::get($top, 'lang_ru.0.value'));
         $topOutput = $topOutput . sprintf(
