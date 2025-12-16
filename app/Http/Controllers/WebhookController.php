@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\Users\UsersService;
+use App\Telegram\Callbacks\RefreshLiftsCallback;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -14,10 +15,6 @@ use function Sentry\captureException;
 
 final class WebhookController extends Controller
 {
-    // ID канала/группы для проверки подписки
-    private const REQUIRED_CHANNEL = '@sheregeshafisha';
-    private const CHANNEL_URL = 'https://t.me/sheregeshafisha';
-
     public function __construct(private readonly UsersService $usersService)
     {
     }
@@ -61,12 +58,12 @@ final class WebhookController extends Controller
     {
         try {
             $chatMember = Telegram::getChatMember([
-                'chat_id' => self::REQUIRED_CHANNEL,
+                'chat_id' => config('services.telegram.required_channel'),
                 'user_id' => $userId
             ]);
 
             $status = $chatMember->status;
-            
+
             Log::debug('Проверка статуса подписки', [
                 'user_id' => $userId,
                 'status' => $status,
@@ -100,7 +97,7 @@ final class WebhookController extends Controller
                 'reply_markup' => json_encode([
                     'inline_keyboard' => [
                         [
-                            ['text' => '📢 Подписаться на канал', 'url' => self::CHANNEL_URL]
+                            ['text' => '📢 Подписаться на канал', 'url' => config('services.telegram.channel_url')]
                         ],
                         [
                             ['text' => '✅ Я подписался', 'callback_data' => 'verify_subscription']
@@ -116,9 +113,6 @@ final class WebhookController extends Controller
         }
     }
 
-    /**
-     * Обрабатывает callback query
-     */
     private function handleCallbackQuery($callbackQuery, $update): void
     {
         $callbackData = $callbackQuery->data;
@@ -142,6 +136,25 @@ final class WebhookController extends Controller
         }
 
         switch ($callbackData) {
+            case 'refresh_lifts':
+                try {
+                    $handler = new RefreshLiftsCallback(Telegram::getFacadeRoot());
+                    $handler->handle($callbackQuery);
+                } catch (Exception $e) {
+                    Log::error("Error refreshing lifts", [
+                        'exception' => $e,
+                        'callback_query' => $callbackQuery,
+                    ]);
+                    captureException($e);
+
+                    Telegram::answerCallbackQuery([
+                        'callback_query_id' => $callbackQuery->id,
+                        'text' => '❌ Ошибка обновления данных',
+                        'show_alert' => true
+                    ]);
+                }
+                break;
+
             case 'lifts':
                 try {
                     Telegram::triggerCommand('lifts', $update);

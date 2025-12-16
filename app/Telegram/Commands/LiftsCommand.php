@@ -43,7 +43,7 @@ class LiftsCommand extends Command
 				return sprintf(
 					"%s %s",
 					$lift->is_active ? '🟢' : '🔴',
-					$this->processName($lift->name)
+					LiftsCommand::processName($lift->name)
 				);
 			})->implode("\n");
 		}
@@ -57,7 +57,7 @@ class LiftsCommand extends Command
 		]);
 	}
 
-	protected function processName(string $name): string
+	public static function processName(string $name): string
 	{
 		if (Str::contains($name, 'Гондольный подъёмник')) {
 			$name .= '🚠';

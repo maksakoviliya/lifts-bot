@@ -39,6 +39,10 @@ return [
         'url' => env('WORLDWEATHERONONLINE_API_URL'),
         'key' => env('WORLDWEATHERONONLINE_API_KEY'),
         'latlng' => env('WORLDWEATHERONONLINE_LAT_LNG'),
-    ]
+    ],
 
+    'telegram' => [
+        'required_channel' => env('TELEGRAM_REQUIRED_CHANNEL', '@sheregeshafisha'),
+        'channel_url' =>  env('TELEGRAM_CHANNEL_URL', 'https://t.me/sheregeshafisha')
+    ]
 ];
