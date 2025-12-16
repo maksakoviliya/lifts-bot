@@ -138,7 +138,7 @@ final class WebhookController extends Controller
         switch ($callbackData) {
             case 'refresh_lifts':
                 try {
-                    $handler = new RefreshLiftsCallback(Telegram::getFacadeRoot());
+                    $handler = new RefreshLiftsCallback(Telegram::bot());
                     $handler->handle($callbackQuery);
                 } catch (Exception $e) {
                     Log::error("Error refreshing lifts", [
