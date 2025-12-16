@@ -142,16 +142,13 @@ final class WebhookController extends Controller
                     $handler->handle($callbackQuery);
                 } catch (Exception $e) {
                     Log::error("Error refreshing lifts", [
-                        'exception' => $e,
-                        'callback_query' => $callbackQuery,
+                        'exception' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                     ]);
                     captureException($e);
 
-                    Telegram::answerCallbackQuery([
-                        'callback_query_id' => $callbackQuery->id,
-                        'text' => '❌ Ошибка обновления данных',
-                        'show_alert' => true
-                    ]);
+                    // Не пытаемся отвечать на callback если он устарел
+                    // просто логируем ошибку
                 }
                 break;
 
