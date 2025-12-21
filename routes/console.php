@@ -15,3 +15,7 @@ Schedule::call(function () {
 Schedule::call(function () {
 	Artisan::call('app:fetch-weather');
 })->hourly();
+
+Schedule::call(function () {
+	Artisan::call('telegram:send-lifts-to-channel');
+})->dailyAt('06:00');
