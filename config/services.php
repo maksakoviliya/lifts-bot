@@ -43,6 +43,7 @@ return [
 
     'telegram' => [
         'required_channel' => env('TELEGRAM_REQUIRED_CHANNEL', '@sheregeshafisha'),
-        'channel_url' =>  env('TELEGRAM_CHANNEL_URL', 'https://t.me/sheregeshafisha')
+        'channel_url' => env('TELEGRAM_CHANNEL_URL', 'https://t.me/sheregeshafisha'),
+        'excluded_chats' => env('TELEGRAM_EXCLUDED_CHATS')
     ]
 ];

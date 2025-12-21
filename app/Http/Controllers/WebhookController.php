@@ -29,15 +29,13 @@ final class WebhookController extends Controller
         $userId = $this->getUserId($update);
         $chatId = $this->getChatId($update);
 
-		Log::debug(__METHOD__ . ': Webhook invoke:', [
-			'$userId' => $userId,
-			'chatId' => $chatId,
-		]);
 
-        // Проверяем подписку перед обработкой
-        if ($userId && $chatId && !$this->checkSubscription($userId)) {
-            $this->sendSubscriptionRequired($chatId);
-            return 'ok';
+        if (!in_array($chatId, implode(',', config('services.telegram.excluded_chats')) ?? [])) {
+            // Проверяем подписку перед обработкой
+            if ($userId && $chatId && !$this->checkSubscription($userId)) {
+                $this->sendSubscriptionRequired($chatId);
+                return 'ok';
+            }
         }
 
         $callbackQuery = $update->callbackQuery;
