@@ -18,4 +18,4 @@ Schedule::call(function () {
 
 Schedule::call(function () {
 	Artisan::call('telegram:send-lifts-to-channel');
-})->dailyAt('06:00');
+})->dailyAt('08:30');
