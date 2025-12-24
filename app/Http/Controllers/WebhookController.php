@@ -30,7 +30,7 @@ final class WebhookController extends Controller
         $chatId = $this->getChatId($update);
 
 
-        if (!in_array($chatId, implode(',', config('services.telegram.excluded_chats')) ?? [])) {
+        if (!in_array($chatId, explode(',', config('services.telegram.excluded_chats')) ?? [])) {
             // Проверяем подписку перед обработкой
             if ($userId && $chatId && !$this->checkSubscription($userId)) {
                 $this->sendSubscriptionRequired($chatId);
