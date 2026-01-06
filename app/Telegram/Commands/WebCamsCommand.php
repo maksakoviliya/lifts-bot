@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Commands\Command;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Keyboard\Keyboard;
+use Telegram\Bot\Laravel\Facades\Telegram;
 
 class WebCamsCommand extends Command
 {
@@ -22,6 +23,9 @@ class WebCamsCommand extends Command
         $this->showSectors($chatId);
     }
 
+    /**
+     * @throws TelegramSDKException
+     */
     public function showSectors($chatId): void
     {
         $sectors = WebCam::query()
@@ -123,7 +127,7 @@ class WebCamsCommand extends Command
             ])
         ]);
 
-        $this->telegram->sendMessage([
+        Telegram::sendMessage([
             'chat_id' => $chatId,
             'text' => "📹 *Камеры в секторе {$sector}:*\nВсего доступно: " . count($cameras),
             'parse_mode' => 'Markdown',
@@ -182,7 +186,7 @@ class WebCamsCommand extends Command
         ]);
 
         // Отправляем сообщение
-        $this->telegram->sendMessage([
+        Telegram::sendMessage([
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'Markdown',
@@ -193,7 +197,7 @@ class WebCamsCommand extends Command
         // Если есть скриншот, отправляем фото
         if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
             try {
-                $this->telegram->sendPhoto([
+                Telegram::sendPhoto([
                     'chat_id' => $chatId,
                     'photo' => $camera->screenshot,
                     'caption' => "🖼 Скриншот с камеры: {$camera->name}"
