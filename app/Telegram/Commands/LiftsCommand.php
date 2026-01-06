@@ -18,16 +18,18 @@ class LiftsCommand extends Command
 	{
 		$keyboard = Keyboard::make()
 			->inline()
-			->row([
-				Keyboard::inlineButton([
-					'text' => '🎿 Проверить подъемники',
-					'callback_data' => 'lifts'
-				]),
-				Keyboard::inlineButton([
-					'text' => '📹 Посмотреть камеры',
-					'callback_data' => 'cams'
-				])
-			]);
+            ->row([
+                Keyboard::inlineButton([
+                    'text' => '🎿 Проверить подъемники',
+                    'callback_data' => 'lifts'
+                ])
+            ])
+            ->row([
+                Keyboard::inlineButton([
+                    'text' => '📹 Посмотреть камеры',
+                    'callback_data' => 'cams'
+                ])
+            ]);
 
 		$groups = Lift::query()->get()->groupBy('data.operator');
 

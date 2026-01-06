@@ -26,7 +26,9 @@ final class StartCommand extends Command
 				Keyboard::inlineButton([
 					'text' => '🎿 Проверить подъемники',
 					'callback_data' => 'lifts'
-				]),
+				])
+            ])
+            ->row([
                 Keyboard::inlineButton([
                     'text' => '📹 Посмотреть камеры',
                     'callback_data' => 'cams'

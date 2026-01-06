@@ -205,6 +205,27 @@ final class WebhookController extends Controller
                 }
                 break;
 
+            case 'cams':
+                try {
+                    Telegram::triggerCommand('cams', $update);
+                    Telegram::deleteMessage([
+                        'chat_id' => $chatId,
+                        'message_id' => $message->messageId
+                    ]);
+                } catch (Exception $e) {
+                    Log::error("Error processing cams command", [
+                        'exception' => $e,
+                        'update' => $update,
+                    ]);
+                    captureException($e);
+
+                    Telegram::sendMessage([
+                        'chat_id' => $chatId,
+                        'text' => 'Произошла ошибка при получении списка камер. Пожалуйста, попробуйте позже.'
+                    ]);
+                }
+                break;
+
             default:
                 // Проверяем, может быть это команда
                 if (str_starts_with($callbackData, '/')) {
