@@ -54,10 +54,10 @@ class EgegeshWebCamsParser
             foreach ($cams as $cam) {
                 WebCam::query()
                     ->updateOrCreate([
-                        'name' => Arr::get($cam, 'name'),
                         'sector' => Arr::get($cam, 'sector'),
                         'aliace' => Arr::get($cam, 'aliace')
                     ], [
+                        'name' => $this->parseName($cam),
                         'work' => Arr::get($cam, 'work'),
                         'description' => Arr::get($cam, 'description'),
                     ]);
@@ -68,6 +68,13 @@ class EgegeshWebCamsParser
 
         return $this->processed;
 	}
+    
+    private function parseName(array $cam)
+    {
+        $name = Arr::get($cam, 'name');
+        $parts = explode('. ', $name, 2);
+        return $parts[1] ?? $name;
+    }
 
     private function extractFirstJsonObject(string $str): ?string
     {
