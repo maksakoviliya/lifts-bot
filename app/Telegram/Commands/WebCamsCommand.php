@@ -29,10 +29,7 @@ class WebCamsCommand extends Command
         $chatId = $this->getUpdate()->getChat()->getId();
         $this->showSectors($chatId);
     }
-
-    /**
-     * @throws TelegramSDKException
-     */
+    
     public function showSectors($chatId): void
     {
         $sectors = WebCam::query()
