@@ -29,7 +29,7 @@ class WebCamsCommand extends Command
         $chatId = $this->getUpdate()->getChat()->getId();
         $this->showSectors($chatId);
     }
-    
+
     public function showSectors($chatId): void
     {
         $sectors = WebCam::query()
@@ -156,28 +156,31 @@ class WebCamsCommand extends Command
 
         $keyboard = Keyboard::make()->inline();
 
-        $keyboard->row([
-            Keyboard::inlineButton([
-                'text' => '← Назад к списку камер',
-                'callback_data' => json_encode([
-                    'action' => 'show_sector_cameras',
-                    'sector' => $camera->sector
+        $link = sprintf("https://egegesh.ru/online/%s", $camera->aliace);
+
+        $keyboard
+            ->row([
+                Keyboard::inlineButton([
+                    'text' => '← Назад к списку камер',
+                    'callback_data' => json_encode([
+                        'action' => 'show_sector_cameras',
+                        'sector' => $camera->sector
+                    ])
                 ])
             ])
-        ]);
-
-        $link = sprintf("https://egegesh.ru/online/%s", $camera->aliace);
-        $keyboard->row([
-            Keyboard::inlineButton([
-                'text' => '← К выбору сектора',
-                'callback_data' => json_encode(['action' => 'show_camera_sectors'])
-            ]),
-            Keyboard::inlineButton([
-                'text' => '📹 Онлайн камера',
-                'url' => $link
+            ->row([
+                Keyboard::inlineButton([
+                    'text' => '← К выбору сектора',
+                    'callback_data' => json_encode(['action' => 'show_camera_sectors'])
+                ])
             ])
-        ]);
-        
+            ->row([
+                Keyboard::inlineButton([
+                    'text' => '📹 Онлайн камера',
+                    'url' => $link
+                ])
+            ]);
+
         // Если есть скриншот, отправляем фото
         if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
             try {
@@ -206,7 +209,6 @@ class WebCamsCommand extends Command
             ]);
         }
 
-       
 
 //        // Отправляем сообщение
 //        Telegram::sendMessage([
