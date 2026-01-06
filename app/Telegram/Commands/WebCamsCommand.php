@@ -157,40 +157,6 @@ class WebCamsCommand extends Command
             return;
         }
 
-        // Если есть скриншот, отправляем фото
-        if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
-            try {
-                $photo = InputFile::create($camera->screenshot, 'camera.jpg');
-
-                Telegram::sendPhoto([
-                    'chat_id' => $chatId,
-                    'photo' => $photo,
-                    'caption' => "🖼 Скриншот с камеры: {$camera->name}",
-                    'parse_mode' => 'Markdown'
-                ]);
-            } catch (Exception $e) {
-                // Логируем ошибку, но не прерываем выполнение
-                captureException($e);
-                Log::error('Ошибка отправки фото камеры', [
-                    'camera_id' => $cameraId,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        } else {
-            Log::error('Ошибка получения фото', [
-                'camera_id' => $cameraId,
-                'screenshot' => $camera->screenshot
-            ]);
-        }
-
-        // Формируем сообщение с информацией
-        $message = "📹 *{$camera->name}*\n\n";
-        $message .= "📍 *Сектор:* {$camera->sector}\n";
-
-//        if ($camera->description) {
-//            $message .= "\n📝: " . $camera->description . "\n";
-//        }
-        
         $keyboard = Keyboard::make()->inline();
 
         $keyboard->row([
@@ -214,14 +180,44 @@ class WebCamsCommand extends Command
                 'url' => $link
             ])
         ]);
+        
+        // Если есть скриншот, отправляем фото
+        if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
+            try {
+                $photo = InputFile::create($camera->screenshot, 'camera.jpg');
 
-        // Отправляем сообщение
-        Telegram::sendMessage([
-            'chat_id' => $chatId,
-            'text' => $message,
-            'parse_mode' => 'Markdown',
-            'reply_markup' => $keyboard,
-            'disable_web_page_preview' => true
-        ]);
+                Telegram::sendPhoto([
+                    'chat_id' => $chatId,
+                    'photo' => $photo,
+                    'caption' => "📹 Скриншот с камеры: *{$camera->name}*",
+                    'parse_mode' => 'Markdown',
+                    'reply_markup' => $keyboard,
+                    'disable_web_page_preview' => true
+                ]);
+            } catch (Exception $e) {
+                // Логируем ошибку, но не прерываем выполнение
+                captureException($e);
+                Log::error('Ошибка отправки фото камеры', [
+                    'camera_id' => $cameraId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        } else {
+            Log::error('Ошибка получения фото', [
+                'camera_id' => $cameraId,
+                'screenshot' => $camera->screenshot
+            ]);
+        }
+
+       
+
+//        // Отправляем сообщение
+//        Telegram::sendMessage([
+//            'chat_id' => $chatId,
+//            'text' => $message,
+//            'parse_mode' => 'Markdown',
+//            'reply_markup' => $keyboard,
+//            'disable_web_page_preview' => true
+//        ]);
     }
 }
