@@ -174,13 +174,10 @@ class WebCamsCommand extends Command
         $message = "📹 *{$camera->name}*\n\n";
         $message .= "📍 *Сектор:* {$camera->sector}\n";
 
-        if ($camera->description) {
-            $message .= "\n📝: " . $camera->description . "\n";
-        }
-
-        $link = sprintf("https://egegesh.ru/online/%s", $camera->aliace);
-        $message .= "\n🔗 *Онлайн камера:*\n`{$link}`";
-
+//        if ($camera->description) {
+//            $message .= "\n📝: " . $camera->description . "\n";
+//        }
+        
         $keyboard = Keyboard::make()->inline();
 
         $keyboard->row([
@@ -193,14 +190,15 @@ class WebCamsCommand extends Command
             ])
         ]);
 
+        $link = sprintf("https://egegesh.ru/online/%s", $camera->aliace);
         $keyboard->row([
             Keyboard::inlineButton([
                 'text' => '← К выбору сектора',
                 'callback_data' => json_encode(['action' => 'show_camera_sectors'])
             ]),
             Keyboard::inlineButton([
-                'text' => '🏠 Главная',
-                'callback_data' => 'main_menu'
+                'text' => '📹 Онлайн камера',
+                'url' => $link
             ])
         ]);
 
