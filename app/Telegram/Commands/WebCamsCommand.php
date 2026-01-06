@@ -153,18 +153,34 @@ class WebCamsCommand extends Command
             return;
         }
 
+        // Если есть скриншот, отправляем фото
+        if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
+            try {
+                Telegram::sendPhoto([
+                    'chat_id' => $chatId,
+                    'photo' => $camera->screenshot,
+                    'caption' => "🖼 Скриншот с камеры: {$camera->name}"
+                ]);
+            } catch (\Exception $e) {
+                // Логируем ошибку, но не прерываем выполнение
+                Log::error('Ошибка отправки фото камеры', [
+                    'camera_id' => $cameraId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
         // Формируем сообщение с информацией
         $message = "📹 *{$camera->name}*\n\n";
         $message .= "📍 *Сектор:* {$camera->sector}\n";
-        $message .= "🔄 *Статус:* " . ($camera->work ? '✅ Работает' : '❌ Не работает') . "\n";
 
         if ($camera->description) {
-            $message .= "\n📝 *Описание:*\\n" . $camera->description . "\n";
+            $message .= "\n📝: " . $camera->description . "\n";
         }
 
-        $message .= "\n🔗 *Прямая ссылка:*\n`{$camera->aliace}`";
+        $link = sprintf("https://egegesh.ru/screens/%s", $camera->aliace);
+        $message .= "\n🔗 *Прямая ссылка:*\n`{$link}`";
 
-        // Создаем клавиатуру
         $keyboard = Keyboard::make()->inline();
 
         $keyboard->row([
@@ -196,22 +212,5 @@ class WebCamsCommand extends Command
             'reply_markup' => $keyboard,
             'disable_web_page_preview' => true
         ]);
-
-        // Если есть скриншот, отправляем фото
-        if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
-            try {
-                Telegram::sendPhoto([
-                    'chat_id' => $chatId,
-                    'photo' => $camera->screenshot,
-                    'caption' => "🖼 Скриншот с камеры: {$camera->name}"
-                ]);
-            } catch (\Exception $e) {
-                // Логируем ошибку, но не прерываем выполнение
-                Log::error('Ошибка отправки фото камеры', [
-                    'camera_id' => $cameraId,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
     }
 }
