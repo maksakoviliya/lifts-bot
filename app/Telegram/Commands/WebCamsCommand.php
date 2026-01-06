@@ -161,6 +161,12 @@ class WebCamsCommand extends Command
         $keyboard
             ->row([
                 Keyboard::inlineButton([
+                    'text' => '📹 Онлайн камера',
+                    'url' => $link
+                ])
+            ])
+            ->row([
+                Keyboard::inlineButton([
                     'text' => '← Назад к списку камер',
                     'callback_data' => json_encode([
                         'action' => 'show_sector_cameras',
@@ -172,12 +178,6 @@ class WebCamsCommand extends Command
                 Keyboard::inlineButton([
                     'text' => '← К выбору сектора',
                     'callback_data' => json_encode(['action' => 'show_camera_sectors'])
-                ])
-            ])
-            ->row([
-                Keyboard::inlineButton([
-                    'text' => '📹 Онлайн камера',
-                    'url' => $link
                 ])
             ]);
 
