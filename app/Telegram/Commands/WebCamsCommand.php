@@ -9,6 +9,7 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Commands\Command;
 use Telegram\Bot\Exceptions\TelegramSDKException;
+use Telegram\Bot\FileUpload\InputFile;
 use Telegram\Bot\Keyboard\Keyboard;
 use Telegram\Bot\Laravel\Facades\Telegram;
 
@@ -159,10 +160,13 @@ class WebCamsCommand extends Command
         // Если есть скриншот, отправляем фото
         if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
             try {
+                $photo = InputFile::create($camera->screenshot, 'camera.jpg');
+
                 Telegram::sendPhoto([
                     'chat_id' => $chatId,
-                    'photo' => $camera->screenshot,
-                    'caption' => "🖼 Скриншот с камеры: {$camera->name}"
+                    'photo' => $photo,
+                    'caption' => "🖼 Скриншот с камеры: {$camera->name}",
+                    'parse_mode' => 'Markdown'
                 ]);
             } catch (Exception $e) {
                 // Логируем ошибку, но не прерываем выполнение
@@ -172,6 +176,11 @@ class WebCamsCommand extends Command
                     'error' => $e->getMessage()
                 ]);
             }
+        } else {
+            Log::error('Ошибка получения фото', [
+                'camera_id' => $cameraId,
+                'screenshot' => $camera->screenshot
+            ]);
         }
 
         // Формируем сообщение с информацией
