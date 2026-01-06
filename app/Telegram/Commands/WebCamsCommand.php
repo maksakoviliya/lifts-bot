@@ -17,6 +17,9 @@ class WebCamsCommand extends Command
     protected string $description = 'Просмотр веб-камер курорта';
     protected array $aliases = ['камеры', 'camera', 'вебкамеры', 'webcams'];
 
+    /**
+     * @throws TelegramSDKException
+     */
     public function handle(): void
     {
         $chatId = $this->getUpdate()->getChat()->getId();
@@ -70,7 +73,7 @@ class WebCamsCommand extends Command
             ])
         ]);
 
-        $this->telegram->sendMessage([
+        Telegram::sendMessage([
             'chat_id' => $chatId,
             'text' => '📹 *Выберите сектор для просмотра камер:*',
             'parse_mode' => 'Markdown',
