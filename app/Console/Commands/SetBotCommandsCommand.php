@@ -20,6 +20,7 @@ class SetBotCommandsCommand extends Command
 				['command' => 'start', 'description' => 'Начать работу с ботом'],
 				['command' => 'lifts', 'description' => 'Доступные подъемники и их статусы'],
 				['command' => 'help', 'description' => 'Список доступных команд'],
+				['command' => 'cams', 'description' => 'Просмотр скриншотов с камер'],
 			]
 		]);
 		
