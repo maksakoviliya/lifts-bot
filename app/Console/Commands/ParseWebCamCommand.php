@@ -7,7 +7,10 @@ namespace App\Console\Commands;
 use App\Jobs\ParseWebCamJob;
 use App\Models\WebCam;
 use App\Services\Parsers\EgegeshWebCamParser;
+use Exception;
 use Illuminate\Console\Command;
+
+use function Sentry\captureException;
 
 class ParseWebCamCommand extends Command
 {
@@ -18,9 +21,16 @@ class ParseWebCamCommand extends Command
     public function handle(): int
     {
         $cams = WebCam::query()->get();
+        $parser = new EgegeshWebCamParser();
 
         foreach ($cams as $cam) {
-            ParseWebCamJob::dispatch($cam);
+//            ParseWebCamJob::dispatch($cam);
+            try {
+                $parser->parse($cam);
+            } catch (Exception $exception) {
+                captureException($exception);
+                continue;
+            }
         }
 
         return self::SUCCESS;
