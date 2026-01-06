@@ -178,8 +178,8 @@ class WebCamsCommand extends Command
             $message .= "\n📝: " . $camera->description . "\n";
         }
 
-        $link = sprintf("https://egegesh.ru/screens/%s", $camera->aliace);
-        $message .= "\n🔗 *Прямая ссылка:*\n`{$link}`";
+        $link = sprintf("https://egegesh.ru/online/%s", $camera->aliace);
+        $message .= "\n🔗 *Онлайн камера:*\n`{$link}`";
 
         $keyboard = Keyboard::make()->inline();
 
