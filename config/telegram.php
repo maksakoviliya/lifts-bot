@@ -2,6 +2,7 @@
 
 use App\Telegram\Commands\LiftsCommand;
 use App\Telegram\Commands\StartCommand;
+use App\Telegram\Commands\WebCamsCommand;
 use Telegram\Bot\Commands\HelpCommand;
 
 return [
@@ -134,7 +135,8 @@ return [
     'commands' => [
         HelpCommand::class,
 	    StartCommand::class,
-	    LiftsCommand::class
+	    LiftsCommand::class,
+        WebCamsCommand::class
     ],
 
     /*

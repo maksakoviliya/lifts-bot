@@ -19,3 +19,11 @@ Schedule::call(function () {
 Schedule::call(function () {
 	Artisan::call('telegram:send-lifts-to-channel');
 })->dailyAt('08:30');
+
+Schedule::call(function () {
+    Artisan::call('app:parse-web-cams');
+})->everyThreeHours();
+
+Schedule::call(function () {
+    Artisan::call('app:parse-web-cam');
+})->everyFifteenMinutes();

@@ -6,9 +6,12 @@ namespace App\Http\Controllers;
 
 use App\Services\Users\UsersService;
 use App\Telegram\Callbacks\RefreshLiftsCallback;
+use App\Telegram\Commands\CameraCommand;
+use App\Telegram\Commands\WebCamsCommand;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Laravel\Facades\Telegram;
 
 use function Sentry\captureException;
@@ -120,11 +123,6 @@ final class WebhookController extends Controller
     {
         $callbackData = $callbackQuery->data;
         $message = $callbackQuery->message;
-
-        Log::info('Message', [
-            'message' => $message
-        ]);
-
         $chatId = $message->chat->id;
 
         Log::info("Callback received", [
@@ -138,7 +136,38 @@ final class WebhookController extends Controller
             return;
         }
 
+        $data = json_decode($callbackData, true);
+
+        if (is_array($data) && isset($data['action'])) {
+            $this->handleCameraCallback($data, $chatId, $callbackQuery);
+            return;
+        }
+
         switch ($callbackData) {
+            case 'main_menu':
+                try {
+                    Telegram::triggerCommand('start', $update);
+                    Telegram::deleteMessage([
+                        'chat_id' => $chatId,
+                        'message_id' => $message->messageId
+                    ]);
+                } catch (Exception $e) {
+                    Log::error("Error showing main menu", ['exception' => $e]);
+                }
+                break;
+
+            case 'show_camera_sectors':
+                try {
+                    $this->showCameraSectors($chatId);
+                } catch (Exception $e) {
+                    Log::error("Error show_camera_sectors", [
+                        'exception' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    captureException($e);
+                }
+                break;
+
             case 'refresh_lifts':
                 try {
                     $handler = new RefreshLiftsCallback(Telegram::bot());
@@ -175,13 +204,70 @@ final class WebhookController extends Controller
                     ]);
                 }
                 break;
+
             default:
-                Telegram::sendMessage([
-                    'chat_id' => $chatId,
-                    'text' => 'Неизвестная команда.'
-                ]);
+                // Проверяем, может быть это команда
+                if (str_starts_with($callbackData, '/')) {
+                    try {
+                        Telegram::triggerCommand(substr($callbackData, 1), $update);
+                    } catch (Exception $e) {
+                        Log::error("Error triggering command", ['exception' => $e]);
+                    }
+                } else {
+                    Telegram::sendMessage([
+                        'chat_id' => $chatId,
+                        'text' => 'Неизвестная команда. Используйте /start для начала работы.'
+                    ]);
+                }
                 break;
         }
+    }
+
+    /**
+     * Обработка callback'ов для камер
+     */
+    private function handleCameraCallback(array $data, int $chatId, $callbackQuery): void
+    {
+        $cameraCommand = new WebCamsCommand();
+
+        try {
+            switch ($data['action']) {
+                case 'show_sector_cameras':
+                    if (isset($data['sector'])) {
+                        $cameraCommand->showCamerasInSector($chatId, $data['sector']);
+                    }
+                    break;
+
+                case 'show_camera_details':
+                    if (isset($data['camera_id'])) {
+                        $cameraCommand->showCameraDetails($chatId, $data['camera_id']);
+                    }
+                    break;
+
+                case 'show_camera_sectors':
+                    $cameraCommand->showSectors($chatId);
+                    break;
+            }
+        } catch (Exception $e) {
+            Log::error('Ошибка обработки callback камер', [
+                'data' => $data,
+                'error' => $e->getMessage()
+            ]);
+
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => 'Произошла ошибка при обработке запроса. Пожалуйста, попробуйте позже.'
+            ]);
+        }
+    }
+
+    /**
+     * @throws TelegramSDKException
+     */
+    private function showCameraSectors($chatId): void
+    {
+        $cameraCommand = new WebCamsCommand();
+        $cameraCommand->showSectors($chatId);
     }
 
     /**
