@@ -25,6 +25,6 @@ class ParseWebCamJob implements ShouldQueue
     public function handle(): void
     {
         $parser = new EgegeshWebCamParser();
-        $parser->parse(sprintf("https://egegesh.ru/screens/%s", $this->webCam->aliace));
+        $parser->parse($this->webCam);
     }
 }

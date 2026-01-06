@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Telegram\Commands;
 
 use App\Models\WebCam;
+use Exception;
 use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Commands\Command;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Keyboard\Keyboard;
 use Telegram\Bot\Laravel\Facades\Telegram;
+
+use function Sentry\captureException;
 
 class WebCamsCommand extends Command
 {
@@ -161,8 +164,9 @@ class WebCamsCommand extends Command
                     'photo' => $camera->screenshot,
                     'caption' => "🖼 Скриншот с камеры: {$camera->name}"
                 ]);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Логируем ошибку, но не прерываем выполнение
+                captureException($e);
                 Log::error('Ошибка отправки фото камеры', [
                     'camera_id' => $cameraId,
                     'error' => $e->getMessage()
