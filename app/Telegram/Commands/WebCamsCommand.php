@@ -7,24 +7,21 @@ namespace App\Telegram\Commands;
 use App\Models\WebCam;
 use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Commands\Command;
-use Telegram\Bot\Exceptions\TelegramOtherException;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Keyboard\Keyboard;
 
-final class WebCamsCommand extends Command
+class WebCamsCommand extends Command
 {
-	protected string $name = 'cams';
-
-	protected string $description = 'View web cams screenshots';
+    protected string $name = 'cams';
+    protected string $description = 'Просмотр веб-камер курорта';
+    protected array $aliases = ['камеры', 'camera', 'вебкамеры', 'webcams'];
 
     public function handle(): void
     {
-        $this->showSectors($this->getUpdate()->getChat()->getId());
+        $chatId = $this->getUpdate()->getChat()->getId();
+        $this->showSectors($chatId);
     }
 
-    /**
-     * @throws TelegramSDKException
-     */
     public function showSectors($chatId): void
     {
         $sectors = WebCam::query()
@@ -38,33 +35,41 @@ final class WebCamsCommand extends Command
 
         if (empty($sectors)) {
             $this->replyWithMessage([
-                'text' => 'Нет доступных секторов.'
+                'text' => 'Нет доступных секторов с камерами.'
             ]);
             return;
         }
 
-        $keyboard = Keyboard::make()
-            ->inline();
+        $keyboard = Keyboard::make()->inline();
 
         $chunks = array_chunk($sectors, 2);
 
         foreach ($chunks as $chunk) {
-            $row = [];
+            $buttons = [];
             foreach ($chunk as $sector) {
-                $row[] = Keyboard::inlineButton([
-                    'text' => "Сектор {$sector}",
+                $buttons[] = Keyboard::inlineButton([
+                    'text' => "📍 Сектор {$sector}",
                     'callback_data' => json_encode([
-                        'action' => 'show_sector',
+                        'action' => 'show_sector_cameras',
                         'sector' => $sector
                     ])
                 ]);
             }
-            $keyboard->row(...$row);
+            $keyboard->row($buttons);
         }
+
+        // Добавляем кнопку "Назад" если это не первый экран
+        $keyboard->row([
+            Keyboard::inlineButton([
+                'text' => '🏠 В главное меню',
+                'callback_data' => 'main_menu'
+            ])
+        ]);
 
         $this->telegram->sendMessage([
             'chat_id' => $chatId,
-            'text' => 'Выберите сектор:',
+            'text' => '📹 *Выберите сектор для просмотра камер:*',
+            'parse_mode' => 'Markdown',
             'reply_markup' => $keyboard
         ]);
     }
@@ -82,40 +87,46 @@ final class WebCamsCommand extends Command
         if ($cameras->isEmpty()) {
             $this->telegram->sendMessage([
                 'chat_id' => $chatId,
-                'text' => 'В этом секторе нет доступных камер.'
+                'text' => "В секторе {$sector} нет доступных камер в данный момент."
             ]);
             return;
         }
 
-        $keyboard = Keyboard::make()
-            ->inline();
+        $keyboard = Keyboard::make()->inline();
 
+        // Добавляем камеры по 2 в ряд
         $chunks = array_chunk($cameras->toArray(), 2);
 
         foreach ($chunks as $chunk) {
-            $row = [];
+            $buttons = [];
             foreach ($chunk as $camera) {
-                $row[] = Keyboard::inlineButton([
-                    'text' => $camera['name'],
+                $buttons[] = Keyboard::inlineButton([
+                    'text' => "📷 " . mb_substr($camera['name'], 0, 15) . (mb_strlen($camera['name']) > 15 ? '...' : ''),
                     'callback_data' => json_encode([
-                        'action' => 'show_camera',
+                        'action' => 'show_camera_details',
                         'camera_id' => $camera['id']
                     ])
                 ]);
             }
-            $keyboard->row(...$row);
+            $keyboard->row($buttons);
         }
 
-        $keyboard->row(
+        // Кнопки навигации
+        $keyboard->row([
             Keyboard::inlineButton([
                 'text' => '← Назад к секторам',
-                'callback_data' => json_encode(['action' => 'show_sectors'])
+                'callback_data' => json_encode(['action' => 'show_camera_sectors'])
+            ]),
+            Keyboard::inlineButton([
+                'text' => '🏠 Главная',
+                'callback_data' => 'main_menu'
             ])
-        );
+        ]);
 
         $this->telegram->sendMessage([
             'chat_id' => $chatId,
-            'text' => "Камеры в секторе {$sector}:",
+            'text' => "📹 *Камеры в секторе {$sector}:*\nВсего доступно: " . count($cameras),
+            'parse_mode' => 'Markdown',
             'reply_markup' => $keyboard
         ]);
     }
@@ -130,57 +141,68 @@ final class WebCamsCommand extends Command
         if (!$camera) {
             $this->telegram->sendMessage([
                 'chat_id' => $chatId,
-                'text' => 'Камера не найдена.'
+                'text' => 'Камера не найдена или временно недоступна.'
             ]);
             return;
         }
 
+        // Формируем сообщение с информацией
         $message = "📹 *{$camera->name}*\n\n";
         $message .= "📍 *Сектор:* {$camera->sector}\n";
+        $message .= "🔄 *Статус:* " . ($camera->work ? '✅ Работает' : '❌ Не работает') . "\n";
 
         if ($camera->description) {
-            $message .= "📝 *Описание:* {$camera->description}\n";
+            $message .= "\n📝 *Описание:*\\n" . $camera->description . "\n";
         }
 
-        $message .= "\n🔗 *Ссылка:* {$camera->aliace}";
+        $message .= "\n🔗 *Прямая ссылка:*\n`{$camera->aliace}`";
 
-        // Создаем клавиатуру с кнопками
-        $keyboard = Keyboard::make()
-            ->inline()
-            ->row(
-                Keyboard::inlineButton([
-                    'text' => '← Назад к камерам',
-                    'callback_data' => json_encode([
-                        'action' => 'show_sector',
-                        'sector' => $camera->sector
-                    ])
-                ]),
-                Keyboard::inlineButton([
-                    'text' => '← К секторам',
-                    'callback_data' => json_encode(['action' => 'show_sectors'])
+        // Создаем клавиатуру
+        $keyboard = Keyboard::make()->inline();
+
+        $keyboard->row([
+            Keyboard::inlineButton([
+                'text' => '← Назад к списку камер',
+                'callback_data' => json_encode([
+                    'action' => 'show_sector_cameras',
+                    'sector' => $camera->sector
                 ])
-            );
+            ])
+        ]);
 
-        // Отправляем сообщение с описанием
+        $keyboard->row([
+            Keyboard::inlineButton([
+                'text' => '← К выбору сектора',
+                'callback_data' => json_encode(['action' => 'show_camera_sectors'])
+            ]),
+            Keyboard::inlineButton([
+                'text' => '🏠 Главная',
+                'callback_data' => 'main_menu'
+            ])
+        ]);
+
+        // Отправляем сообщение
         $this->telegram->sendMessage([
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'Markdown',
-            'reply_markup' => $keyboard
+            'reply_markup' => $keyboard,
+            'disable_web_page_preview' => true
         ]);
 
         // Если есть скриншот, отправляем фото
-        if ($camera->screenshot) {
+        if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
             try {
                 $this->telegram->sendPhoto([
                     'chat_id' => $chatId,
                     'photo' => $camera->screenshot,
-                    'caption' => "Скриншот камеры: {$camera->name}"
+                    'caption' => "🖼 Скриншот с камеры: {$camera->name}"
                 ]);
             } catch (\Exception $e) {
-                $this->telegram->sendMessage([
-                    'chat_id' => $chatId,
-                    'text' => 'Не удалось загрузить скриншот.'
+                // Логируем ошибку, но не прерываем выполнение
+                Log::error('Ошибка отправки фото камеры', [
+                    'camera_id' => $cameraId,
+                    'error' => $e->getMessage()
                 ]);
             }
         }
