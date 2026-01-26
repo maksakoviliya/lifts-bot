@@ -46,9 +46,16 @@ class RefreshLiftsCallback
                     'text' => '🔄 Обновить статус',
                     'callback_data' => 'refresh_lifts'
                 ])
-            ]);
+            ])
+	        ->row([
+		        Keyboard::inlineButton([
+			        'text' => '📢 Просмотр камер',
+			        'url' => 'https://t.me/gesh_lifts_bot'
+		        ])
+	        ]);
 
-        try {
+
+	    try {
             // Обновляем сообщение
             $this->telegram->editMessageText([
                 'chat_id' => $callbackQuery->message->chat->id,
