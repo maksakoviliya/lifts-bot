@@ -62,7 +62,6 @@ final class WebhookController extends Controller
      */
     private function checkSubscription(int $userId): bool
     {
-        return true;
         try {
             $chatMember = Telegram::getChatMember([
                 'chat_id' => config('services.telegram.required_channel'),
