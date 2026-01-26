@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Models\Lift;
 use App\Telegram\Commands\LiftsCommand;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Telegram\Bot\Keyboard\Keyboard;
@@ -50,7 +51,7 @@ class SendMessageToChannel extends Command
 			$this->info("Message ID: " . $response->getMessageId());
 
 			return self::SUCCESS;
-		} catch (\Exception $e) {
+		} catch (Exception $e) {
 			$this->error("❌ Ошибка: " . $e->getMessage());
 			return self::FAILURE;
 		}
