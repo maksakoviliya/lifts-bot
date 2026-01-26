@@ -28,6 +28,12 @@ class SendMessageToChannel extends Command
 					'text' => '🔄 Обновить статус',
 					'callback_data' => 'refresh_lifts'
 				])
+			])
+			->row([
+				Keyboard::inlineButton([
+					'text' => '📢 Просмотр камер',
+					'url' => 'https://t.me/gesh_lifts_bot'
+				])
 			]);
 
 		$text = $this->getLiftsStatus();
