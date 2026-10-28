@@ -6,13 +6,13 @@ namespace App\Http\Controllers;
 
 use App\Services\Users\UsersService;
 use App\Telegram\Callbacks\RefreshLiftsCallback;
-use App\Telegram\Commands\CameraCommand;
 use App\Telegram\Commands\WebCamsCommand;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\Laravel\Facades\Telegram;
+use Throwable;
 
 use function Sentry\captureException;
 
@@ -24,27 +24,44 @@ final class WebhookController extends Controller
 
     public function __invoke(Request $request): string
     {
+        $secret = config('services.telegram.webhook_secret');
+        abort_if($secret && !hash_equals($secret, (string) $request->header('X-Telegram-Bot-Api-Secret-Token')), 403);
+
+        try {
+            $this->handleUpdate();
+        } catch (Throwable $e) {
+            // A non-2xx response makes Telegram redeliver the same update again and again
+            report($e);
+        }
+
+        return 'ok';
+    }
+
+    private function handleUpdate(): void
+    {
         $update = Telegram::getWebhookUpdate();
 
         $this->usersService->processUser($update);
 
         // Получаем ID пользователя из разных типов обновлений
         $userId = $this->getUserId($update);
-        $chatId = $this->getChatId($update);
+        $chat = $update->getChat();
+        $chatId = $chat->get('id');
+        $callbackQuery = $update->callbackQuery;
 
+        $mustBeSubscribed = $chat->get('type') !== 'channel' // never post the prompt into the channel itself
+            && !in_array($chatId, explode(',', (string) config('services.telegram.excluded_chats')))
+            && $callbackQuery?->data !== 'verify_subscription';
 
-        if (!in_array($chatId, explode(',', config('services.telegram.excluded_chats')) ?? [])) {
-            // Проверяем подписку перед обработкой
-            if ($userId && $chatId && !$this->checkSubscription($userId)) {
-                $this->sendSubscriptionRequired($chatId);
-                return 'ok';
-            }
+        // Проверяем подписку перед обработкой
+        if ($mustBeSubscribed && $userId && $chatId && !$this->checkSubscription($userId)) {
+            $this->sendSubscriptionRequired($chatId);
+            return;
         }
 
-        $callbackQuery = $update->callbackQuery;
         if ($callbackQuery) {
             $this->handleCallbackQuery($callbackQuery, $update);
-            return 'ok';
+            return;
         }
 
         $update = Telegram::commandsHandler(true);
@@ -53,8 +70,6 @@ final class WebhookController extends Controller
             'update' => $update->updateId,
             'message' => $update->getMessage(),
         ]);
-
-        return 'ok';
     }
 
     /**
@@ -129,6 +144,11 @@ final class WebhookController extends Controller
             'data' => $callbackData,
             'chat_id' => $chatId,
         ]);
+
+        // these two answer the callback themselves, with their own text
+        if ($callbackData !== 'refresh_lifts' && $callbackData !== 'verify_subscription') {
+            $this->answerCallbackQuery($callbackQuery->id);
+        }
 
         // Обработка проверки подписки
         if ($callbackData === 'verify_subscription') {
@@ -301,6 +321,7 @@ final class WebhookController extends Controller
         $messageId = $callbackQuery->message->messageId;
 
         if ($this->checkSubscription($userId)) {
+            $this->answerCallbackQuery($callbackQuery->id);
             try {
                 Telegram::editMessageText([
                     'chat_id' => $chatId,
@@ -314,17 +335,23 @@ final class WebhookController extends Controller
                 ]);
             }
         } else {
-            try {
-                Telegram::answerCallbackQuery([
-                    'callback_query_id' => $callbackQuery->id,
-                    'text' => '❌ Вы еще не подписались на канал! Пожалуйста, подпишитесь и попробуйте снова.',
-                    'show_alert' => true
-                ]);
-            } catch (Exception $e) {
-                Log::error('Ошибка ответа на callback', [
-                    'exception' => $e->getMessage()
-                ]);
-            }
+            $this->answerCallbackQuery($callbackQuery->id, [
+                'text' => '❌ Вы еще не подписались на канал! Пожалуйста, подпишитесь и попробуйте снова.',
+                'show_alert' => true
+            ]);
+        }
+    }
+
+    /**
+     * Убирает "часики" с нажатой кнопки
+     */
+    private function answerCallbackQuery(string $callbackQueryId, array $params = []): void
+    {
+        try {
+            Telegram::answerCallbackQuery(['callback_query_id' => $callbackQueryId] + $params);
+        } catch (Exception $e) {
+            // stale callbacks can't be answered anymore, nothing to do about it
+            Log::warning('Failed to answer callback query: ' . $e->getMessage());
         }
     }
 
@@ -333,82 +360,7 @@ final class WebhookController extends Controller
      */
     private function getUserId($update): ?int
     {
-        if (isset($update->getMessage()->from)) {
-            Log::debug('Getting user ID from message' . __METHOD__, [
-                '$update->getMessage()' => $update->getMessage(),
-            ]);
-            return $update->getMessage()->from->id ?? null;
-        }
-
-        if (isset($update->callbackQuery->from)) {
-            Log::debug('Getting user ID from callbackQuery' . __METHOD__, [
-                '$update->callbackQuery' => $update->callbackQuery,
-            ]);
-            return $update->callbackQuery->from->id ?? null;
-        }
-
-        if (isset($update->callbackQuery->my_chat_member)) {
-            Log::debug('Getting user ID from myChatMember' . __METHOD__, [
-                'myChatMember' => $update->my_chat_member,
-            ]);
-            return $update->callbackQuery->my_chat_member->from->id ?? null;
-        }
-
-        Log::debug('User ID not found in update' . __METHOD__, [
-            '$update' => $update,
-        ]);
-
-        return null;
-    }
-
-    /**
-     * Получает ID чата из update
-     */
-    private function getChatId($update): ?int
-    {
-        if (isset($update->getMessage()->chat)) {
-            Log::debug('getChatId', [
-                'hetMessage' => $update->getMessage()
-            ]);
-            return $update->getMessage()->chat->id ?? null;
-        }
-
-        if (isset($update->callbackQuery->message->chat)) {
-            Log::debug('getChatId', [
-                'hetMessage' => $update->callbackQuery
-            ]);
-            return $update->callbackQuery->message->chat->id ?? null;
-        }
-
-        return null;
-    }
-
-    public function test(Request $request)
-    {
-//		$groups = Lift::query()->get()->groupBy('data.operator');
-
-//		if ($lifts->isEmpty()) {
-//			$this->replyWithMessage([
-//				'text' => "Пока нет данных о подъемниках ❗️"
-//			]);
-//			return;
-//		}
-
-//		$output = "🎿 *Статусы подъемников*";
-//		
-//		foreach ($groups as $key => $group) {
-//			$output .= "\n\n*$key:*\n";
-//
-//			$output .= $group->map(function ($lift) {
-//				return sprintf(
-//					"%s: %s",
-//					$this->processName($lift->name),
-//					$lift->is_active ? '✅ Работает' : '❌ Закрыт'
-//				);
-//			})->implode("\n");
-//		}
-//
-//		
-//		dd($output);
+        // For callbacks getMessage() is the bot's own message, so its "from" is the bot, not the user
+        return $update->callbackQuery?->from?->id ?? $update->getMessage()->get('from')?->id;
     }
 }

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Parsers;
 
 use App\Models\WebCam;
-use App\Services\Lifts\LiftService;
 use Exception;
-use Faker\Provider\PhoneNumber;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Arr;
@@ -24,7 +22,7 @@ class EgegeshWebCamsParser
     public function parse(): int
 	{
 		$url = 'https://egegesh.ru/screens';
-		$client = new Client();
+		$client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
 		try {
 			$response = $client->get($url, [
 				'headers' => [
@@ -43,13 +41,12 @@ class EgegeshWebCamsParser
             $jsonString = $matches[1];
 
             $pureJson = $this->extractFirstJsonObject($jsonString);
-            $data = json_decode($pureJson, true);
-
+            $data = $pureJson === null ? null : json_decode($pureJson, true);
 
             if ($data === null) {
                 throw new Exception('Can\'t read data from ' . $url);
             }
-            $cams = Arr::get($data, 'cams');
+            $cams = Arr::get($data, 'cams', []);
             
             foreach ($cams as $cam) {
                 WebCam::query()

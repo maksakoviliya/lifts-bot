@@ -13,7 +13,7 @@ class LiftsCommand extends Command
 	protected string $name = 'lifts';
 
 	protected string $description = 'Show lifts statuses';
-	
+
 	public function handle(): void
 	{
 		$keyboard = Keyboard::make()
@@ -31,16 +31,26 @@ class LiftsCommand extends Command
                 ])
             ]);
 
+		$this->replyWithMessage([
+			'text' => self::statusText(),
+			'parse_mode' => 'Markdown',
+			'reply_markup' => $keyboard
+		]);
+	}
+
+	/**
+	 * Lifts status message shared by the command, the channel post and its refresh button
+	 */
+	public static function statusText(): string
+	{
 		$groups = Lift::query()->get()->groupBy('data.operator');
 
 		if ($groups->isEmpty()) {
-			$this->replyWithMessage([
-				'text' => "Пока нет данных о подъемниках ❗️"
-			]);
-			return;
+			return "Пока нет данных о подъемниках ❗️";
 		}
 
-		$output = "🎿 *Статусы подъемников*";
+		$output = "🎿 *Статусы подъемников*\n";
+		$output .= "_Обновлено: " . now()->format('d.m.Y H:i') . "_";
 
 		foreach ($groups as $key => $group) {
 			$output .= "\n\n*$key:*\n";
@@ -49,18 +59,12 @@ class LiftsCommand extends Command
 				return sprintf(
 					"%s %s",
 					$lift->is_active ? '🟢' : '🔴',
-					LiftsCommand::processName($lift->name)
+					self::processName($lift->name)
 				);
 			})->implode("\n");
 		}
 
-        $output = $output . "\n\n" . Cache::get('weather');
-
-		$this->replyWithMessage([
-			'text' => $output,
-			'parse_mode' => 'Markdown',
-			'reply_markup' => $keyboard
-		]);
+		return $output . "\n\n" . Cache::get('weather');
 	}
 
 	public static function processName(string $name): string

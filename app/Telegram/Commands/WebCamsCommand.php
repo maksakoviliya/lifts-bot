@@ -6,6 +6,7 @@ namespace App\Telegram\Commands;
 
 use App\Models\WebCam;
 use Exception;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Commands\Command;
 use Telegram\Bot\Exceptions\TelegramSDKException;
@@ -41,8 +42,11 @@ class WebCamsCommand extends Command
             ->values()
             ->toArray();
 
+        // Telegram facade instead of $this->...: the controller calls these methods on `new WebCamsCommand()`,
+        // where the SDK hasn't injected the bot or the update
         if (empty($sectors)) {
-            $this->replyWithMessage([
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
                 'text' => 'Нет доступных секторов с камерами.'
             ]);
             return;
@@ -93,7 +97,7 @@ class WebCamsCommand extends Command
             ->get();
 
         if ($cameras->isEmpty()) {
-            $this->telegram->sendMessage([
+            Telegram::sendMessage([
                 'chat_id' => $chatId,
                 'text' => "В секторе {$sector} нет доступных камер в данный момент."
             ]);
@@ -147,7 +151,7 @@ class WebCamsCommand extends Command
         $camera = WebCam::query()->find($cameraId);
 
         if (!$camera) {
-            $this->telegram->sendMessage([
+            Telegram::sendMessage([
                 'chat_id' => $chatId,
                 'text' => 'Камера не найдена или временно недоступна.'
             ]);
@@ -184,16 +188,17 @@ class WebCamsCommand extends Command
         // Если есть скриншот, отправляем фото
         if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
             try {
-                $photo = InputFile::create($camera->screenshot, 'camera.jpg');
+                // InputFile::create($url) downloads via fopen and can block the webhook for up to 60s
+                $photo = Http::timeout(10)->throw()->get($camera->screenshot)->body();
 
                 Telegram::sendPhoto([
                     'chat_id' => $chatId,
-                    'photo' => $photo,
+                    'photo' => InputFile::createFromContents($photo, 'camera.jpg'),
                     'caption' => "📹 Скриншот с камеры: *{$camera->name}*",
                     'parse_mode' => 'Markdown',
                     'reply_markup' => $keyboard,
-                    'disable_web_page_preview' => true
                 ]);
+                return;
             } catch (Exception $e) {
                 // Логируем ошибку, но не прерываем выполнение
                 captureException($e);
@@ -209,14 +214,12 @@ class WebCamsCommand extends Command
             ]);
         }
 
-
-//        // Отправляем сообщение
-//        Telegram::sendMessage([
-//            'chat_id' => $chatId,
-//            'text' => $message,
-//            'parse_mode' => 'Markdown',
-//            'reply_markup' => $keyboard,
-//            'disable_web_page_preview' => true
-//        ]);
+        // No screenshot: still give the user the online link and navigation instead of silence
+        Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => "📹 *{$camera->name}*\nСкриншот пока недоступен.",
+            'parse_mode' => 'Markdown',
+            'reply_markup' => $keyboard,
+        ]);
     }
 }

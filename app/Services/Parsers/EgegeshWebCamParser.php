@@ -5,24 +5,20 @@ declare(strict_types=1);
 namespace App\Services\Parsers;
 
 use App\Models\WebCam;
-use App\Services\Lifts\LiftService;
-use Exception;
-use Faker\Provider\PhoneNumber;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
 
 class EgegeshWebCamParser
 {
     /**
-     * @throws Exception
+     * Returns whether a screenshot was found and saved
      */
-    public function parse(WebCam $webCam): int
+    public function parse(WebCam $webCam): bool
 	{
         $url = sprintf("https://egegesh.ru/screens/%s", $webCam->aliace);
-        $client = new Client();
+        $client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
         try {
             $response = $client->get($url, [
 				'headers' => [
@@ -33,25 +29,21 @@ class EgegeshWebCamParser
             Log::error('Egegesh parse error', [
 				'exception' => $exception
 			]);
-            return 0;
+            return false;
         }
 
         $html = $response->getBody()->getContents();
         $crawler = new Crawler($html);
 
-        $lastGalleryItem = $crawler->filter('.slick-slide')->last();
-        $img = $lastGalleryItem->filter('img');
-
-        $imgNodes = $lastGalleryItem->filter('img');
-        if (!$imgNodes->count()) {
-           return 1;
+        $img = $crawler->filter('.slick-slide')->last()->filter('img');
+        if (!$img->count()) {
+           return false;
         }
 
-        $src = $img->attr('src');
         $webCam->update([
-            'screenshot' => $src
+            'screenshot' => $img->attr('src')
         ]);
-        
-        return 0;
+
+        return true;
 	}
 }

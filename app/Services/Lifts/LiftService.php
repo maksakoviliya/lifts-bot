@@ -33,7 +33,7 @@ final class LiftService
 
 	protected function getStringValue(string $key): string
 	{
-		return trim(Arr::get($this->data, $key, ''));
+		return trim((string) Arr::get($this->data, $key));
 	}
 
 	protected function getIntValue(string $key): int

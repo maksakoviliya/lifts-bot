@@ -8,22 +8,13 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::call(function () {
-	Artisan::call('app:parse-lifts-command');
-})->everyFifteenMinutes();
+// withoutOverlapping: a hung run must not pile up new ones on top of it
+Schedule::command('app:parse-lifts-command')->everyFifteenMinutes()->withoutOverlapping();
 
-Schedule::call(function () {
-	Artisan::call('app:fetch-weather');
-})->hourly();
+Schedule::command('app:fetch-weather')->hourly()->withoutOverlapping();
 
-Schedule::call(function () {
-	Artisan::call('telegram:send-lifts-to-channel');
-})->dailyAt('08:30');
+Schedule::command('telegram:send-lifts-to-channel')->dailyAt('08:30');
 
-Schedule::call(function () {
-    Artisan::call('app:parse-web-cams');
-})->everyThreeHours();
+Schedule::command('app:parse-web-cams')->everyThreeHours()->withoutOverlapping();
 
-Schedule::call(function () {
-    Artisan::call('app:parse-web-cam');
-})->everyFifteenMinutes();
+Schedule::command('app:parse-web-cam')->everyFifteenMinutes()->withoutOverlapping();

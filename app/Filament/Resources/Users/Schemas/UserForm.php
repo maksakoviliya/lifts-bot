@@ -25,7 +25,9 @@ class UserForm
 				TextInput::make('usage_count'),
                 TextInput::make('password')
                     ->password()
-                    ->required(),
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    // empty on edit means "keep the current password"
+                    ->dehydrated(fn (?string $state): bool => filled($state)),
             ]);
     }
 }

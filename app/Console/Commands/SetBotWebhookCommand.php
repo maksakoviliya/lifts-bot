@@ -16,7 +16,10 @@ class SetBotWebhookCommand extends Command
     public function handle(): int
     {
 		$this->info(sprintf("Set webhook: %s", route('webhook')));
-	    Telegram::setWebhook(['url' => route('webhook')]);
+	    Telegram::setWebhook(array_filter([
+			'url' => route('webhook'),
+			'secret_token' => config('services.telegram.webhook_secret'),
+		]));
 	    
 		return parent::SUCCESS;
     }

@@ -8,7 +8,6 @@ use App\Services\Weather\WeatherService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class FetchWeatherCommand extends Command
@@ -20,49 +19,38 @@ class FetchWeatherCommand extends Command
     public function handle(): int
     {
         $url = config('services.worldweatheronline.url');
-        $key = config('services.worldweatheronline.key');
-        $latLng = config('services.worldweatheronline.latlng');
 
-        $this->info('Fetching weather from "' . $url . '"' . "\n");
-        $this->info('Key: ' . $key . "\n");
-        $this->info('LatLng: ' . $latLng . "\n");
+        $this->info('Fetching weather from "' . $url . '"');
 
-        $date = Carbon::now('Asia/Novokuznetsk')->setMinutes(0);
-        $dateFormatted = $date->format('Y-m-d');
-        $hour = $date->addHour()->hour;
+        // Forecast for the upcoming hour; computed once because Carbon is mutable
+        $date = Carbon::now('Asia/Novokuznetsk')->addHour()->startOfHour();
 
         $response = Http::get($url, [
-            'key' => $key,
-            'q' => $latLng,
+            'key' => config('services.worldweatheronline.key'),
+            'q' => config('services.worldweatheronline.latlng'),
             'format' => 'json',
-            'date' => $dateFormatted,
+            'date' => $date->format('Y-m-d'),
             'lang' => 'ru'
         ]);
 
-        if (!$response->successful()) {
-            $this->error('Fetch weather failed');
-        }
-
         $data = $response->json('data');
-        if (Arr::get($data, 'error')) {
-            $this->error(Arr::get($data, 'error.0.msg', 'Что-то пошло не так!'));
+        if (!$response->successful() || Arr::get($data, 'error')) {
+            $this->error(Arr::get($data, 'error.0.msg', 'Fetch weather failed'));
+            return self::FAILURE;
         }
 
-        $weather = Arr::get($data, 'weather.0');
-        $hours = Arr::get($weather, 'hourly');
-        $weatherService = new WeatherService();
+        // "hourly" is split into tp-hour slots (3h by default) with "time" like "0", "300", ..., "2100"
+        $slot = collect(Arr::get($data, 'weather.0.hourly', []))
+            ->last(fn (array $hour) => (int) $hour['time'] <= $date->hour * 100);
 
-        $result = $weatherService->parse(
-            $date,
-            $date->addHour()->format('H:i'),
-            $hours[$hour]
-        );
-
-        if ($result) {
-            $this->info('Finished!');
-        } else {
-            $this->error('Fetch weather failed!');
+        if (!$slot) {
+            $this->error('No hourly data in response');
+            return self::FAILURE;
         }
+
+        (new WeatherService())->parse($date, $date->format('H:i'), $slot);
+
+        $this->info('Finished!');
 
         return self::SUCCESS;
     }

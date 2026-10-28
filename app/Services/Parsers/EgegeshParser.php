@@ -8,6 +8,7 @@ use App\Services\Lifts\LiftService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Symfony\Component\DomCrawler\Crawler;
 
 class EgegeshParser
@@ -42,23 +43,28 @@ class EgegeshParser
 		$crawler = new Crawler($html);
 
 		$crawler->filter('.accord__title')->each(function (Crawler $node) {
-			$status = $node->filter('.accord__status img')->attr('title');
-			$operator = $node->filter('.accord__operator')->text();
-			$name = $node->filter('.accord__name-text')->text();
-			$rise_time = $node->filter('.accord__rise_time')->text();
-			$length = $node->filter('.accord__length')->text();
-			$icon = $node->filter('.accord__icon img')->attr('src');
+			try {
+				$status = $node->filter('.accord__status img')->attr('title');
+				$operator = $node->filter('.accord__operator')->text();
+				$name = $node->filter('.accord__name-text')->text();
+				$rise_time = $node->filter('.accord__rise_time')->text();
+				$length = $node->filter('.accord__length')->text();
+				$icon = $node->filter('.accord__icon img')->attr('src');
+			} catch (InvalidArgumentException $exception) {
+				// one malformed row must not stop the rest from updating
+				Log::warning('Egegesh lift row skipped', ['exception' => $exception->getMessage()]);
+				return;
+			}
 
-			if ($this->liftService->createOrUpdateLift([
+			$this->liftService->createOrUpdateLift([
 				'status' => $status,
 				'operator' => $operator,
 				'name' => $name,
 				'rise_time' => $rise_time,
 				'length' => $length,
 				'icon' => $icon,
-			])) {
-				$this->processed++;
-			}
+			]);
+			$this->processed++;
 		});
 		
 		return $this->processed;

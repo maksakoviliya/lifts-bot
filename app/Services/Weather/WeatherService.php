@@ -48,6 +48,8 @@ class WeatherService
                 $midOutput,
                 $topOutput
             ),
+            // stale weather should disappear from messages rather than linger forever
+            now()->addHours(3),
         );
 
         return true;
