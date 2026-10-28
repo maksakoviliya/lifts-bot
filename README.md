@@ -5,7 +5,7 @@ Telegram-бот со статусами подъёмников и камерам
 
 ## Локальный запуск (Docker / Sail, MySQL)
 
-Нужны PHP 8.2+ и composer на хосте (только чтобы поставить `vendor/`), Docker, ngrok для бота.
+Нужны PHP 8.2+ и composer на хосте (только чтобы поставить `vendor/`) и Docker.
 
 ```bash
 composer install
@@ -31,18 +31,21 @@ php artisan key:generate
 
 ### Бот
 
-Используйте **отдельного тестового бота** от @BotFather. С боевым токеном `setWebhook` перехватит вебхук у прода.
+Бот получает апдейты через **long polling**: `telegram:poll` (`getUpdates`) запускается планировщиком каждую
+минуту и работает ~55 секунд. Входящие соединения от Telegram не нужны, туннель тоже.
 
-1. `.env`: `TELEGRAM_BOT_TOKEN=<тестовый>`, `TELEGRAM_WEBHOOK_SECRET=<любая строка>`,
-   `TELEGRAM_REQUIRED_CHANNEL`/`TELEGRAM_CHANNEL_URL` указывают на свой тестовый канал (бот должен быть в нём
-   админом, иначе проверка подписки всегда пропускает).
-2. `ngrok http 8080`, затем `APP_URL=https://<id>.ngrok-free.app` в `.env`.
-3. Зарегистрировать вебхук и меню:
-   ```bash
-   ./vendor/bin/sail artisan app:set-bot-webhook-command
-   ./vendor/bin/sail artisan app:set-bot-commands-command
-   ```
+Используйте **отдельного тестового бота** от @BotFather. Боевой токен локально не подходит: два поллера на один
+токен будут отбирать апдейты друг у друга.
+
+1. `.env`: `TELEGRAM_BOT_TOKEN=<тестовый>`, `TELEGRAM_REQUIRED_CHANNEL`/`TELEGRAM_CHANNEL_URL` указывают на свой
+   тестовый канал (бот должен быть в нём админом, иначе проверка подписки всегда пропускает).
+2. Меню команд: `./vendor/bin/sail artisan app:set-bot-commands-command`
+3. Запустить `./vendor/bin/sail artisan schedule:work` (или разово `./vendor/bin/sail artisan telegram:poll`).
 4. `telegram:send-lifts-to-channel` постит в `TELEGRAM_REQUIRED_CHANNEL`.
+
+Если у бота был включён вебхук, `getUpdates` отвечает 409, и поллер сам удаляет вебхук. Роут `/webhook` и
+`app:set-bot-webhook-command` остались для окружений, куда Telegram может достучаться, но при включённом
+планировщике поллер снимет вебхук в течение минуты.
 
 ### Тесты
 
@@ -50,8 +53,23 @@ php artisan key:generate
 ./vendor/bin/sail artisan test
 ```
 
-## Прод: секрет вебхука
+## Прод (REG.RU, без Docker)
 
-`/webhook` проверяет заголовок `X-Telegram-Bot-Api-Secret-Token`, если задан `TELEGRAM_WEBHOOK_SECRET`.
-Чтобы включить проверку: задать переменную на проде и перерегистрировать вебхук
-(`php artisan app:set-bot-webhook-command`). Пока переменная пустая, вебхук работает как раньше.
+Сервер в Москве: входящие соединения от Telegram до него не доходят (вебхук ловит `Connection timed out`),
+поэтому прод работает на polling. Нужен только cron, раз в минуту, с PHP 8.4:
+
+```
+* * * * * cd /var/www/u2186645/data/www/lifts-bot && /opt/php/8.4/bin/php artisan schedule:run >> /dev/null 2>&1
+```
+
+После выкладки первый запуск `telegram:poll` сам удалит вебхук и обработает накопившиеся апдейты. Если старые
+апдейты отвечать не нужно, до выкладки сбросьте их:
+
+```bash
+/opt/php/8.4/bin/php artisan tinker --execute='Telegram::deleteWebhook(["drop_pending_updates" => true]);'
+```
+
+Логи: `storage/logs/laravel-*.log` (бот, Telegram), `storage/logs/egegesh-*.log` (запросы к egegesh.ru).
+
+`/webhook` проверяет заголовок `X-Telegram-Bot-Api-Secret-Token`, если задан `TELEGRAM_WEBHOOK_SECRET`. В режиме
+polling это не используется.

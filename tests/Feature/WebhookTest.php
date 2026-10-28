@@ -57,7 +57,7 @@ class WebhookTest extends TestCase
         $telegram = $this->fakeTelegram();
         $telegram->shouldReceive('getWebhookUpdate')->andReturn(new Update($this->startMessage()));
         $telegram->shouldReceive('getChatMember')->once()->andReturn(new ChatMember(['status' => 'member']));
-        $telegram->shouldReceive('commandsHandler')->once()->andReturn(new Update($this->startMessage()));
+        $telegram->shouldReceive('processCommand')->once();
 
         $this->postUpdate()->assertOk()->assertSee('ok');
 
