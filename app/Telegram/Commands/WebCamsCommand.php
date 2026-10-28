@@ -187,28 +187,52 @@ class WebCamsCommand extends Command
 
         // Если есть скриншот, отправляем фото
         if ($camera->screenshot && filter_var($camera->screenshot, FILTER_VALIDATE_URL)) {
+            // Two steps logged separately: egegesh.log = the site didn't give the picture,
+            // laravel.log = Telegram didn't accept it
+            $start = microtime(true);
             try {
                 // InputFile::create($url) downloads via fopen and can block the webhook for up to 60s
-                $photo = Http::timeout(10)->throw()->get($camera->screenshot)->body();
+                $response = Http::timeout(10)->throw()->get($camera->screenshot);
+                $photo = $response->body();
 
-                Telegram::sendPhoto([
-                    'chat_id' => $chatId,
-                    'photo' => InputFile::createFromContents($photo, 'camera.jpg'),
-                    'caption' => "📹 Скриншот с камеры: *{$camera->name}*",
-                    'parse_mode' => 'Markdown',
-                    'reply_markup' => $keyboard,
-                ]);
-                return;
-            } catch (Exception $e) {
-                // Логируем ошибку, но не прерываем выполнение
-                captureException($e);
-                Log::error('Ошибка отправки фото камеры', [
+                Log::channel('egegesh')->info('screenshot: downloaded', [
                     'camera_id' => $cameraId,
-                    'error' => $e->getMessage()
+                    'url' => $camera->screenshot,
+                    'status' => $response->status(),
+                    'bytes' => strlen($photo),
+                    'ms' => (int) ((microtime(true) - $start) * 1000),
+                ]);
+            } catch (Exception $e) {
+                $photo = null;
+                Log::channel('egegesh')->warning('screenshot: download failed', [
+                    'camera_id' => $cameraId,
+                    'url' => $camera->screenshot,
+                    'ms' => (int) ((microtime(true) - $start) * 1000),
+                    'error' => $e->getMessage(),
                 ]);
             }
+
+            if ($photo !== null) {
+                try {
+                    Telegram::sendPhoto([
+                        'chat_id' => $chatId,
+                        'photo' => InputFile::createFromContents($photo, 'camera.jpg'),
+                        'caption' => "📹 Скриншот с камеры: *{$camera->name}*",
+                        'parse_mode' => 'Markdown',
+                        'reply_markup' => $keyboard,
+                    ]);
+                    return;
+                } catch (Exception $e) {
+                    // Логируем ошибку, но не прерываем выполнение
+                    captureException($e);
+                    Log::error('Ошибка отправки фото камеры в Telegram', [
+                        'camera_id' => $cameraId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
         } else {
-            Log::error('Ошибка получения фото', [
+            Log::channel('egegesh')->warning('screenshot: no valid url in DB', [
                 'camera_id' => $cameraId,
                 'screenshot' => $camera->screenshot
             ]);

@@ -73,6 +73,16 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Everything about egegesh.ru: what we requested, what it answered, what got parsed.
+        // Telegram-side errors stay in laravel.log, so the two sources are easy to tell apart.
+        'egegesh' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/egegesh.log'),
+            'level' => 'debug',
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

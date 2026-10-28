@@ -6,6 +6,7 @@ namespace App\Services\Lifts;
 
 use App\Models\Lift;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 
 final class LiftService
 {
@@ -29,6 +30,16 @@ final class LiftService
 		$lift->update([
 			'is_active' => $this->getStatus($lift),
 		]);
+
+		if ($lift->wasRecentlyCreated || $lift->wasChanged('is_active')) {
+			Log::channel('egegesh')->info('lifts: status changed', [
+				'name' => $lift->name,
+				'is_active' => $lift->is_active,
+				'site_status' => $this->getStringValue('status'),
+				'override' => $lift->status,
+				'new' => $lift->wasRecentlyCreated,
+			]);
+		}
 	}
 
 	protected function getStringValue(string $key): string

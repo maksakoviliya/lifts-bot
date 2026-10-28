@@ -19,6 +19,8 @@ class EgegeshWebCamParser
 	{
         $url = sprintf("https://egegesh.ru/screens/%s", $webCam->aliace);
         $client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
+        $log = Log::channel('egegesh');
+        $start = microtime(true);
         try {
             $response = $client->get($url, [
 				'headers' => [
@@ -26,9 +28,11 @@ class EgegeshWebCamParser
 				]
 			]);
         } catch (GuzzleException $exception) {
-            Log::error('Egegesh parse error', [
-				'exception' => $exception
-			]);
+            $log->error('cam: request failed', [
+                'url' => $url,
+                'ms' => (int) ((microtime(true) - $start) * 1000),
+                'error' => $exception->getMessage(),
+            ]);
             return false;
         }
 
@@ -37,11 +41,24 @@ class EgegeshWebCamParser
 
         $img = $crawler->filter('.slick-slide')->last()->filter('img');
         if (!$img->count()) {
-           return false;
+            $log->warning('cam: no screenshot in gallery', [
+                'url' => $url,
+                'status' => $response->getStatusCode(),
+            ]);
+            return false;
         }
 
         $webCam->update([
             'screenshot' => $img->attr('src')
+        ]);
+
+        // "changed: false" for hours means the site stopped taking new screenshots for this camera
+        $log->info('cam: screenshot', [
+            'cam' => $webCam->aliace,
+            'work' => (bool) $webCam->work,
+            'screenshot' => $webCam->screenshot,
+            'changed' => $webCam->wasChanged('screenshot'),
+            'ms' => (int) ((microtime(true) - $start) * 1000),
         ]);
 
         return true;

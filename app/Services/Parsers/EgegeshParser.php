@@ -25,7 +25,9 @@ class EgegeshParser
 	public function parse(): int
 	{
 		$url = 'https://egegesh.ru/info';
-		$client = new Client();
+		$client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
+		$log = Log::channel('egegesh');
+		$start = microtime(true);
 		try {
 			$response = $client->get($url, [
 				'headers' => [
@@ -33,16 +35,25 @@ class EgegeshParser
 				]
 			]);
 		} catch (GuzzleException $exception) {
-			Log::error('Egegesh parse error', [
-				'exception' => $exception
+			$log->error('lifts: request failed', [
+				'url' => $url,
+				'ms' => (int) ((microtime(true) - $start) * 1000),
+				'error' => $exception->getMessage(),
 			]);
 			return 0;
 		}
 
 		$html = $response->getBody()->getContents();
+		$log->info('lifts: page fetched', [
+			'url' => $url,
+			'status' => $response->getStatusCode(),
+			'bytes' => strlen($html),
+			'ms' => (int) ((microtime(true) - $start) * 1000),
+		]);
 		$crawler = new Crawler($html);
+		$rows = $crawler->filter('.accord__title');
 
-		$crawler->filter('.accord__title')->each(function (Crawler $node) {
+		$rows->each(function (Crawler $node) {
 			try {
 				$status = $node->filter('.accord__status img')->attr('title');
 				$operator = $node->filter('.accord__operator')->text();
@@ -52,7 +63,10 @@ class EgegeshParser
 				$icon = $node->filter('.accord__icon img')->attr('src');
 			} catch (InvalidArgumentException $exception) {
 				// one malformed row must not stop the rest from updating
-				Log::warning('Egegesh lift row skipped', ['exception' => $exception->getMessage()]);
+				Log::channel('egegesh')->warning('lifts: row skipped', [
+					'error' => $exception->getMessage(),
+					'html' => mb_substr(trim($node->text('')), 0, 200),
+				]);
 				return;
 			}
 
@@ -66,7 +80,13 @@ class EgegeshParser
 			]);
 			$this->processed++;
 		});
-		
+
+		// zero rows on a 200 page almost always means the site layout changed
+		$log->log($this->processed ? 'info' : 'warning', 'lifts: parsed', [
+			'rows' => $rows->count(),
+			'processed' => $this->processed,
+		]);
+
 		return $this->processed;
 	}
 }

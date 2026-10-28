@@ -23,6 +23,8 @@ class EgegeshWebCamsParser
 	{
 		$url = 'https://egegesh.ru/screens';
 		$client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
+		$log = Log::channel('egegesh');
+		$start = microtime(true);
 		try {
 			$response = $client->get($url, [
 				'headers' => [
@@ -30,13 +32,22 @@ class EgegeshWebCamsParser
 				]
 			]);
 		} catch (GuzzleException $exception) {
-			Log::error('Egegesh parse error', [
-				'exception' => $exception
+			$log->error('cams: request failed', [
+				'url' => $url,
+				'ms' => (int) ((microtime(true) - $start) * 1000),
+				'error' => $exception->getMessage(),
 			]);
 			return 0;
 		}
 
 		$html = $response->getBody()->getContents();
+		$log->info('cams: page fetched', [
+			'url' => $url,
+			'status' => $response->getStatusCode(),
+			'bytes' => strlen($html),
+			'ms' => (int) ((microtime(true) - $start) * 1000),
+		]);
+
         if (preg_match('/window\.__REDUX_STATE__\s*=\s*(\{.*?\});/s', $html, $matches)) {
             $jsonString = $matches[1];
 
@@ -60,8 +71,14 @@ class EgegeshWebCamsParser
                     ]);
                 $this->processed++;
             }
-        }
 
+            $log->info('cams: parsed', [
+                'cams' => count($cams),
+                'working' => collect($cams)->where('work', 1)->count(),
+            ]);
+        } else {
+            $log->warning('cams: __REDUX_STATE__ not found on the page, layout changed?', ['url' => $url]);
+        }
 
         return $this->processed;
 	}
