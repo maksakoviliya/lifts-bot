@@ -17,36 +17,17 @@ class EgegeshWebCamsParser
 	private int $processed = 0;
 
     /**
+     * @param string|null $html page fetched elsewhere (egegesh:push), skips the request
      * @throws Exception
      */
-    public function parse(): int
+    public function parse(?string $html = null): int
 	{
 		$url = 'https://egegesh.ru/screens';
-		$client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
 		$log = Log::channel('egegesh');
-		$start = microtime(true);
-		try {
-			$response = $client->get($url, [
-				'headers' => [
-					'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-				]
-			]);
-		} catch (GuzzleException $exception) {
-			$log->error('cams: request failed', [
-				'url' => $url,
-				'ms' => (int) ((microtime(true) - $start) * 1000),
-				'error' => $exception->getMessage(),
-			]);
+		$html ??= $this->fetch($url);
+		if ($html === null) {
 			return 0;
 		}
-
-		$html = $response->getBody()->getContents();
-		$log->info('cams: page fetched', [
-			'url' => $url,
-			'status' => $response->getStatusCode(),
-			'bytes' => strlen($html),
-			'ms' => (int) ((microtime(true) - $start) * 1000),
-		]);
 
         if (preg_match('/window\.__REDUX_STATE__\s*=\s*(\{.*?\});/s', $html, $matches)) {
             $jsonString = $matches[1];
@@ -81,6 +62,37 @@ class EgegeshWebCamsParser
         }
 
         return $this->processed;
+	}
+
+    private function fetch(string $url): ?string
+	{
+		$client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
+		$log = Log::channel('egegesh');
+		$start = microtime(true);
+		try {
+			$response = $client->get($url, [
+				'headers' => [
+					'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+				]
+			]);
+		} catch (GuzzleException $exception) {
+			$log->error('cams: request failed', [
+				'url' => $url,
+				'ms' => (int) ((microtime(true) - $start) * 1000),
+				'error' => $exception->getMessage(),
+			]);
+			return null;
+		}
+
+		$html = $response->getBody()->getContents();
+		$log->info('cams: page fetched', [
+			'url' => $url,
+			'status' => $response->getStatusCode(),
+			'bytes' => strlen($html),
+			'ms' => (int) ((microtime(true) - $start) * 1000),
+		]);
+
+		return $html;
 	}
     
     private function parseName(array $cam)

@@ -41,6 +41,11 @@ return [
         'latlng' => env('WORLDWEATHERONONLINE_LAT_LNG'),
     ],
 
+    'egegesh' => [
+        // shared secret for scripts/egegesh-push.sh; empty = the push endpoint is off
+        'push_token' => env('EGEGESH_PUSH_TOKEN'),
+    ],
+
     'telegram' => [
         'required_channel' => env('TELEGRAM_REQUIRED_CHANNEL', '@sheregeshafisha'),
         'channel_url' => env('TELEGRAM_CHANNEL_URL', 'https://t.me/sheregeshafisha'),

@@ -14,29 +14,19 @@ class EgegeshWebCamParser
 {
     /**
      * Returns whether a screenshot was found and saved
+     *
+     * @param string|null $html page fetched elsewhere (egegesh:push), skips the request
      */
-    public function parse(WebCam $webCam): bool
+    public function parse(WebCam $webCam, ?string $html = null): bool
 	{
         $url = sprintf("https://egegesh.ru/screens/%s", $webCam->aliace);
-        $client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
         $log = Log::channel('egegesh');
         $start = microtime(true);
-        try {
-            $response = $client->get($url, [
-				'headers' => [
-					'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-				]
-			]);
-        } catch (GuzzleException $exception) {
-            $log->error('cam: request failed', [
-                'url' => $url,
-                'ms' => (int) ((microtime(true) - $start) * 1000),
-                'error' => $exception->getMessage(),
-            ]);
+        $html ??= $this->fetch($url);
+        if ($html === null) {
             return false;
         }
 
-        $html = $response->getBody()->getContents();
         // The slider <img> is lazy-loaded (src is a placeholder) and lags behind; the newest shot is galery[0] in the page state
         $data = null;
         if (preg_match('/window\.__REDUX_STATE__\s*=\s*(\{.*?\});/s', $html, $matches)) {
@@ -47,7 +37,7 @@ class EgegeshWebCamParser
         if (!$screenshot) {
             $log->warning('cam: no screenshot in gallery', [
                 'url' => $url,
-                'status' => $response->getStatusCode(),
+                'bytes' => strlen($html),
             ]);
             return false;
         }
@@ -67,4 +57,26 @@ class EgegeshWebCamParser
 
         return true;
 	}
+
+    private function fetch(string $url): ?string
+    {
+        $client = new Client(['timeout' => 15, 'connect_timeout' => 5]);
+        $start = microtime(true);
+        try {
+            $response = $client->get($url, [
+				'headers' => [
+					'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+				]
+			]);
+        } catch (GuzzleException $exception) {
+            Log::channel('egegesh')->error('cam: request failed', [
+                'url' => $url,
+                'ms' => (int) ((microtime(true) - $start) * 1000),
+                'error' => $exception->getMessage(),
+            ]);
+            return null;
+        }
+
+        return $response->getBody()->getContents();
+    }
 }

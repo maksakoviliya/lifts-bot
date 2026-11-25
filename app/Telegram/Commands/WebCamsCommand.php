@@ -8,6 +8,7 @@ use App\Models\WebCam;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Telegram\Bot\Commands\Command;
 use Telegram\Bot\Exceptions\TelegramSDKException;
 use Telegram\Bot\FileUpload\InputFile;
@@ -190,26 +191,31 @@ class WebCamsCommand extends Command
             // Two steps logged separately: egegesh.log = the site didn't give the picture,
             // laravel.log = Telegram didn't accept it
             $start = microtime(true);
-            try {
-                // InputFile::create($url) downloads via fopen and can block the webhook for up to 60s
-                $response = Http::timeout(10)->throw()->get($camera->screenshot);
-                $photo = $response->body();
+            // pushed by scripts/egegesh-push.sh while prod can't reach static.egegesh.ru
+            $path = $camera->screenshotPath();
+            $photo = $path !== null && Storage::exists($path) ? Storage::get($path) : null;
 
-                Log::channel('egegesh')->info('screenshot: downloaded', [
-                    'camera_id' => $cameraId,
-                    'url' => $camera->screenshot,
-                    'status' => $response->status(),
-                    'bytes' => strlen($photo),
-                    'ms' => (int) ((microtime(true) - $start) * 1000),
-                ]);
-            } catch (Exception $e) {
-                $photo = null;
-                Log::channel('egegesh')->warning('screenshot: download failed', [
-                    'camera_id' => $cameraId,
-                    'url' => $camera->screenshot,
-                    'ms' => (int) ((microtime(true) - $start) * 1000),
-                    'error' => $e->getMessage(),
-                ]);
+            if ($photo === null) {
+                try {
+                    // InputFile::create($url) downloads via fopen and can block the webhook for up to 60s
+                    $response = Http::timeout(10)->throw()->get($camera->screenshot);
+                    $photo = $response->body();
+
+                    Log::channel('egegesh')->info('screenshot: downloaded', [
+                        'camera_id' => $cameraId,
+                        'url' => $camera->screenshot,
+                        'status' => $response->status(),
+                        'bytes' => strlen($photo),
+                        'ms' => (int) ((microtime(true) - $start) * 1000),
+                    ]);
+                } catch (Exception $e) {
+                    Log::channel('egegesh')->warning('screenshot: download failed', [
+                        'camera_id' => $cameraId,
+                        'url' => $camera->screenshot,
+                        'ms' => (int) ((microtime(true) - $start) * 1000),
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             if ($photo !== null) {

@@ -34,11 +34,11 @@ final class Lift extends Model
 	public function Status(): Attribute
 	{
 		return Attribute::get(function (mixed $value, array $attributes) {
-			if (!is_null($attributes['enabled_at']) && !is_null($attributes['enabled_by'])) {
+			if (isset($attributes['enabled_at']) && isset($attributes['enabled_by'])) {
 				return 'enabled';
 			}
 
-			if (!is_null($attributes['disabled_at']) && !is_null($attributes['disabled_by'])) {
+			if (isset($attributes['disabled_at']) && isset($attributes['disabled_by'])) {
 				return 'disabled';
 			}
 
