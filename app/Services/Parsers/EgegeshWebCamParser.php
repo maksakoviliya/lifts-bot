@@ -8,7 +8,7 @@ use App\Models\WebCam;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\DomCrawler\Crawler;
+use Illuminate\Support\Arr;
 
 class EgegeshWebCamParser
 {
@@ -37,10 +37,14 @@ class EgegeshWebCamParser
         }
 
         $html = $response->getBody()->getContents();
-        $crawler = new Crawler($html);
-
-        $img = $crawler->filter('.slick-slide')->last()->filter('img');
-        if (!$img->count()) {
+        // The slider <img> is lazy-loaded (src is a placeholder) and lags behind; the newest shot is galery[0] in the page state
+        $data = null;
+        if (preg_match('/window\.__REDUX_STATE__\s*=\s*(\{.*?\});/s', $html, $matches)) {
+            $json = EgegeshWebCamsParser::extractFirstJsonObject($matches[1]);
+            $data = $json === null ? null : json_decode($json, true);
+        }
+        $screenshot = is_array($data) ? Arr::get($data, "show.{$webCam->aliace}.galery.0.image") : null;
+        if (!$screenshot) {
             $log->warning('cam: no screenshot in gallery', [
                 'url' => $url,
                 'status' => $response->getStatusCode(),
@@ -49,7 +53,7 @@ class EgegeshWebCamParser
         }
 
         $webCam->update([
-            'screenshot' => $img->attr('src')
+            'screenshot' => $screenshot
         ]);
 
         // "changed: false" for hours means the site stopped taking new screenshots for this camera

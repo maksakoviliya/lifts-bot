@@ -51,7 +51,7 @@ class EgegeshWebCamsParser
         if (preg_match('/window\.__REDUX_STATE__\s*=\s*(\{.*?\});/s', $html, $matches)) {
             $jsonString = $matches[1];
 
-            $pureJson = $this->extractFirstJsonObject($jsonString);
+            $pureJson = self::extractFirstJsonObject($jsonString);
             $data = $pureJson === null ? null : json_decode($pureJson, true);
 
             if ($data === null) {
@@ -90,7 +90,7 @@ class EgegeshWebCamsParser
         return $parts[1] ?? $name;
     }
 
-    private function extractFirstJsonObject(string $str): ?string
+    public static function extractFirstJsonObject(string $str): ?string
     {
         $str = trim($str);
 
